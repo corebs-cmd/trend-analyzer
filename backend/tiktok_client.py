@@ -3,7 +3,7 @@ import asyncio
 from typing import List
 
 APIFY_BASE_URL = "https://api.apify.com/v2"
-TIKTOK_ACTOR_ID = "clockworks/tiktok-scraper"
+TIKTOK_ACTOR_ID = "clockworks~tiktok-scraper"
 
 
 async def run_tiktok_scraper(
