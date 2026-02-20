@@ -2,6 +2,7 @@ import { useState } from 'react'
 import SearchForm from './components/SearchForm'
 import PostGrid from './components/PostGrid'
 import AnalysisPanel from './components/AnalysisPanel'
+import PromptProposal from './components/PromptProposal'
 import VideoPanel from './components/VideoPanel'
 import './App.css'
 
@@ -17,6 +18,7 @@ export default function App() {
   const [videoStatus, setVideoStatus] = useState('idle') // idle | loading | done | error
   const [videoError, setVideoError] = useState('')
   const [videos, setVideos] = useState([])
+  const [selectedPrompt, setSelectedPrompt] = useState(null)
 
   function handleReset() {
     setStatus('idle')
@@ -27,6 +29,7 @@ export default function App() {
     setVideoStatus('idle')
     setVideos([])
     setVideoError('')
+    setSelectedPrompt(null)
   }
 
   async function handleSearch({ hashtags, minLikes, maxPosts, contentTypes }) {
@@ -38,6 +41,7 @@ export default function App() {
     setVideoStatus('idle')
     setVideos([])
     setVideoError('')
+    setSelectedPrompt(null)
 
     try {
       const res = await fetch(`${API_BASE}/analyze`, {
@@ -79,6 +83,7 @@ export default function App() {
         body: JSON.stringify({
           analysis,
           hashtags: lastQuery.hashtags,
+          selected_prompt: selectedPrompt || undefined,
         }),
       })
 
@@ -158,16 +163,25 @@ export default function App() {
               </section>
             </div>
 
+            {/* Prompt Proposals */}
+            {videoStatus === 'idle' && (
+              <PromptProposal
+                analysis={analysis}
+                hashtags={lastQuery.hashtags}
+                onPromptsReady={setSelectedPrompt}
+              />
+            )}
+
             {/* Generate Videos CTA */}
             {videoStatus === 'idle' && (
               <div className="generate-video-bar">
                 <div className="gvb-text">
                   <p className="gvb-title">Ready to create actual video content?</p>
                   <p className="gvb-sub">
-                    Claude writes the best concept · RunwayML veo3.1 + Gen-4 · Kling 2.6 Pro · Pika 2.2 · Luma Dream Machine — all render simultaneously
+                    Your selected prompt will be sent to all 5 AI video models simultaneously
                   </p>
                 </div>
-                <button className="btn-generate-video" onClick={handleGenerateVideos}>
+                <button className="btn-generate-video" onClick={handleGenerateVideos} disabled={!selectedPrompt}>
                   🎬 Generate AI Video
                 </button>
               </div>

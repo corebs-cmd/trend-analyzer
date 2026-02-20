@@ -7,10 +7,84 @@ from kling_client import submit_kling_task, submit_pika_task
 from luma_client import submit_luma_task
 
 
+def generate_prompt_proposals(
+    anthropic_key: str,
+    analysis: dict,
+    hashtags: List[str],
+) -> List[dict]:
+    """
+    Ask Claude to produce 3 distinct runway_prompt variations based on the trend analysis.
+    Returns a list of 3 prompt objects with a label and the prompt text.
+    """
+    client = anthropic.Anthropic(api_key=anthropic_key)
+
+    trend_patterns = analysis.get("trend_patterns", [])
+    key_insights = analysis.get("key_insights", "")
+    vp = analysis.get("video_proposal", {})
+
+    patterns_text = "\n".join(
+        f"- {p.get('pattern')}: {p.get('description')} ({p.get('frequency')})"
+        for p in trend_patterns
+    )
+
+    prompt = f"""You are an expert AI video prompt engineer specializing in RunwayML text-to-video generation.
+
+Based on this Instagram trend analysis for hashtags: {', '.join(hashtags)}
+
+KEY INSIGHTS:
+{key_insights}
+
+TOP PATTERNS:
+{patterns_text}
+
+ORIGINAL VIDEO PROPOSAL:
+Title: {vp.get('title', '')}
+Hook: {vp.get('hook', '')}
+Visual Style: {json.dumps(vp.get('visual_style', {}), indent=2)}
+
+Generate exactly 3 distinct RunwayML video prompt variations for this trend. Each variation should take a different creative angle (e.g. cinematic/moody, energetic/fast-paced, minimal/clean) but all should be optimized for viral social media video.
+
+Respond ONLY with a valid JSON array of exactly 3 objects:
+[
+  {{
+    "label": "short 2-4 word label describing this prompt style (e.g. 'Cinematic & Moody')",
+    "description": "one sentence explaining what makes this prompt unique",
+    "prompt": "A detailed cinematic video generation prompt for RunwayML. Must be vivid, specific, and describe motion, lighting, camera movement, and mood. 50-80 words. No human faces. Focus on environments, objects, textures, and movement."
+  }}
+]
+
+Rules for each prompt:
+- Describe ONLY visuals — no dialogue or text overlays
+- Include camera movement (slow push in, aerial drift, handheld follow, etc.)
+- Include lighting conditions (golden hour, soft diffused light, neon glow, etc.)
+- Include mood and texture details
+- NO human faces (Runway restriction) — use hands, silhouettes, landscapes, objects
+- Keep each prompt under 80 words
+- Make the 3 variations meaningfully different from each other
+
+Return ONLY the JSON array. No markdown, no extra text."""
+
+    message = client.messages.create(
+        model="claude-opus-4-6",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = message.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("```")[1]
+        if raw.startswith("json"):
+            raw = raw[4:]
+        raw = raw.strip()
+
+    return json.loads(raw)
+
+
 def _generate_video_concepts(
     anthropic_key: str,
     analysis: dict,
     hashtags: List[str],
+    selected_prompt: str = None,
 ) -> List[dict]:
     """
     Ask Claude to produce 3 distinct video concepts with RunwayML-optimized prompts.
@@ -26,6 +100,21 @@ def _generate_video_concepts(
         f"- {p.get('pattern')}: {p.get('description')} ({p.get('frequency')})"
         for p in trend_patterns
     )
+
+    if selected_prompt:
+        runway_prompt_instruction = f"""Use EXACTLY this runway_prompt (do not modify it):
+"{selected_prompt}"
+"""
+    else:
+        runway_prompt_instruction = """Generate a "runway_prompt": "A detailed cinematic video generation prompt for RunwayML. Must be vivid, specific, and describe motion, lighting, camera movement, and mood. 50-80 words. No human faces. Focus on environments, objects, textures, and movement."
+
+Rules for runway_prompt:
+- Describe ONLY visuals — no dialogue or text overlays
+- Include camera movement (slow push in, aerial drift, handheld follow, etc.)
+- Include lighting conditions (golden hour, soft diffused light, neon glow, etc.)
+- Include mood and texture details
+- NO human faces (Runway restriction) — use hands, silhouettes, landscapes, objects
+- Keep it under 80 words"""
 
     prompt = f"""You are an expert social media video director and AI video prompt engineer.
 
@@ -57,18 +146,12 @@ Respond ONLY with a valid JSON array of exactly 1 object, each with this structu
       {{"timestamp": "10-20s", "action": "what happens on screen"}},
       {{"timestamp": "20-30s", "action": "CTA and closing"}}
     ],
-    "runway_prompt": "A detailed cinematic video generation prompt for RunwayML. Must be vivid, specific, and describe motion, lighting, camera movement, and mood. 50-80 words. No human faces. Focus on environments, objects, textures, and movement.",
+    "runway_prompt": "placeholder — see instruction below",
     "hashtags": ["tag1", "tag2", "tag3", "tag4", "tag5"]
   }}
 ]
 
-Rules for runway_prompt:
-- Describe ONLY visuals — no dialogue or text overlays
-- Include camera movement (slow push in, aerial drift, handheld follow, etc.)
-- Include lighting conditions (golden hour, soft diffused light, neon glow, etc.)
-- Include mood and texture details
-- NO human faces (Runway restriction) — use hands, silhouettes, landscapes, objects
-- Keep it under 80 words
+{runway_prompt_instruction}
 
 Return ONLY the JSON array. No markdown, no extra text."""
 
@@ -170,6 +253,7 @@ async def generate_videos(
     luma_key: str,
     analysis: dict,
     hashtags: List[str],
+    selected_prompt: str = None,
 ) -> List[dict]:
     """
     Full pipeline: generate 1 concept via Claude, then submit to all providers in parallel.
@@ -178,9 +262,9 @@ async def generate_videos(
     """
     loop = asyncio.get_event_loop()
 
-    # Step 1: Generate 1 concept via Claude
+    # Step 1: Generate 1 concept via Claude (using selected_prompt if provided)
     concepts = await loop.run_in_executor(
-        None, _generate_video_concepts, anthropic_key, analysis, hashtags
+        None, _generate_video_concepts, anthropic_key, analysis, hashtags, selected_prompt
     )
     concept = concepts[0]
 

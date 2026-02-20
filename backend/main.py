@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 from apify_client import run_instagram_scraper
 from analyzer import analyze_posts
-from video_generator import generate_videos, poll_runway_task
+from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals
 from kling_client import poll_kling_task, poll_pika_task
 from luma_client import poll_luma_task
 
@@ -33,9 +33,15 @@ class ScrapeRequest(BaseModel):
     content_types: List[str] = Field(["posts", "reels"], description="Content types to scrape")
 
 
+class ProposePromptsRequest(BaseModel):
+    analysis: dict = Field(..., description="The analysis object from /analyze")
+    hashtags: List[str] = Field(..., description="The hashtags used in the analysis")
+
+
 class VideoRequest(BaseModel):
     analysis: dict = Field(..., description="The analysis object from /analyze")
     hashtags: List[str] = Field(..., description="The hashtags used in the analysis")
+    selected_prompt: Optional[str] = Field(None, description="The user-selected runway prompt from propose-prompts")
 
 
 class PostSummary(BaseModel):
@@ -125,6 +131,21 @@ async def analyze(req: ScrapeRequest):
     )
 
 
+@app.post("/propose-prompts")
+async def propose_prompts_endpoint(req: ProposePromptsRequest):
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not anthropic_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+    try:
+        loop = asyncio.get_event_loop()
+        proposals = await loop.run_in_executor(
+            None, generate_prompt_proposals, anthropic_key, req.analysis, req.hashtags
+        )
+        return {"proposals": proposals}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Prompt proposal failed: {str(e)}")
+
+
 @app.post("/generate-videos", response_model=VideoResponse)
 async def generate_videos_endpoint(req: VideoRequest):
     anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
@@ -143,6 +164,7 @@ async def generate_videos_endpoint(req: VideoRequest):
             luma_key=luma_key,
             analysis=req.analysis,
             hashtags=req.hashtags,
+            selected_prompt=req.selected_prompt,
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Video generation failed: {str(e)}")
