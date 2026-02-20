@@ -9,7 +9,7 @@ const TYPE_OPTIONS = [
 export default function SearchForm({ onSearch, onReset, loading }) {
   const [hashtagInput, setHashtagInput] = useState('')
   const [minLikes, setMinLikes] = useState(0)
-  const [maxPosts, setMaxPosts] = useState(50)
+  const [maxPosts, setMaxPosts] = useState(15)
   const [contentTypes, setContentTypes] = useState(['posts', 'reels'])
 
   function toggleType(value) {
