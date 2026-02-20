@@ -236,3 +236,4 @@ async def video_status_legacy(task_id: str):
         return result
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Status check failed: {str(e)}")
+
