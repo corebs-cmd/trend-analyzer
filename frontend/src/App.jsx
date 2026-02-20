@@ -19,6 +19,7 @@ export default function App() {
   const [videoError, setVideoError] = useState('')
   const [videos, setVideos] = useState([])
   const [selectedPrompt, setSelectedPrompt] = useState(null)
+  const [hasGeneratedOnce, setHasGeneratedOnce] = useState(false)
 
   function handleReset() {
     setStatus('idle')
@@ -30,6 +31,7 @@ export default function App() {
     setVideos([])
     setVideoError('')
     setSelectedPrompt(null)
+    setHasGeneratedOnce(false)
   }
 
   async function handleSearch({ hashtags, minLikes, maxPosts, contentTypes }) {
@@ -42,6 +44,7 @@ export default function App() {
     setVideos([])
     setVideoError('')
     setSelectedPrompt(null)
+    setHasGeneratedOnce(false)
 
     try {
       const res = await fetch(`${API_BASE}/analyze`, {
@@ -95,6 +98,7 @@ export default function App() {
       const data = await res.json()
       setVideos(data.videos)
       setVideoStatus('done')
+      setHasGeneratedOnce(true)
     } catch (e) {
       setVideoError(e.message)
       setVideoStatus('error')
@@ -163,29 +167,35 @@ export default function App() {
               </section>
             </div>
 
-            {/* Prompt Proposals */}
-            {videoStatus === 'idle' && (
-              <PromptProposal
-                analysis={analysis}
-                hashtags={lastQuery.hashtags}
-                onPromptsReady={setSelectedPrompt}
-              />
-            )}
+            {/* Prompt Proposals — always visible once results are shown */}
+            <PromptProposal
+              analysis={analysis}
+              hashtags={lastQuery.hashtags}
+              onPromptsReady={setSelectedPrompt}
+            />
 
-            {/* Generate Videos CTA */}
-            {videoStatus === 'idle' && (
-              <div className="generate-video-bar">
-                <div className="gvb-text">
-                  <p className="gvb-title">Ready to create actual video content?</p>
-                  <p className="gvb-sub">
-                    Your selected prompt will be sent to all 5 AI video models simultaneously
-                  </p>
-                </div>
-                <button className="btn-generate-video" onClick={handleGenerateVideos} disabled={!selectedPrompt}>
-                  🎬 Generate AI Video
-                </button>
+            {/* Generate / Regenerate Videos CTA */}
+            <div className="generate-video-bar">
+              <div className="gvb-text">
+                <p className="gvb-title">
+                  {hasGeneratedOnce ? 'Try a different prompt?' : 'Ready to create actual video content?'}
+                </p>
+                <p className="gvb-sub">
+                  Your selected prompt will be sent to all 5 AI video models simultaneously
+                </p>
               </div>
-            )}
+              <button
+                className="btn-generate-video"
+                onClick={handleGenerateVideos}
+                disabled={!selectedPrompt || videoStatus === 'loading'}
+              >
+                {videoStatus === 'loading'
+                  ? '⏳ Generating…'
+                  : hasGeneratedOnce
+                  ? '🔄 Regenerate Videos'
+                  : '🎬 Generate AI Video'}
+              </button>
+            </div>
 
             <VideoPanel
               videos={videos}
