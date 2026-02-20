@@ -70,8 +70,8 @@ async def _poll_until_finished(
     api_token: str, run_id: str, poll_interval: int = 5, max_wait: int = 300
 ) -> str:
     elapsed = 0
-    async with httpx.AsyncClient(timeout=30) as client:
-        while elapsed < max_wait:
+    while elapsed < max_wait:
+        async with httpx.AsyncClient(timeout=30) as client:
             resp = await client.get(
                 f"{APIFY_BASE_URL}/actor-runs/{run_id}",
                 params={"token": api_token},
@@ -80,13 +80,13 @@ async def _poll_until_finished(
             run_data = resp.json()["data"]
             status = run_data["status"]
 
-            if status == "SUCCEEDED":
-                return run_data["defaultDatasetId"]
-            elif status in ("FAILED", "ABORTED", "TIMED-OUT"):
-                raise RuntimeError(f"Apify run ended with status: {status}")
+        if status == "SUCCEEDED":
+            return run_data["defaultDatasetId"]
+        elif status in ("FAILED", "ABORTED", "TIMED-OUT"):
+            raise RuntimeError(f"Apify run ended with status: {status}")
 
-            await asyncio.sleep(poll_interval)
-            elapsed += poll_interval
+        await asyncio.sleep(poll_interval)
+        elapsed += poll_interval
 
     raise TimeoutError(f"Apify run did not finish within {max_wait} seconds")
 
