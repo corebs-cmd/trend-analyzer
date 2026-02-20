@@ -11,6 +11,7 @@ def generate_prompt_proposals(
     anthropic_key: str,
     analysis: dict,
     hashtags: List[str],
+    platform: str = "instagram",
 ) -> List[dict]:
     """
     Ask Claude to produce 3 distinct runway_prompt variations based on the trend analysis.
@@ -27,9 +28,11 @@ def generate_prompt_proposals(
         for p in trend_patterns
     )
 
+    platform_label = "TikTok" if platform == "tiktok" else "Instagram"
+
     prompt = f"""You are an expert AI video prompt engineer specializing in RunwayML text-to-video generation.
 
-Based on this Instagram trend analysis for hashtags: {', '.join(hashtags)}
+Based on this {platform_label} trend analysis for hashtags: {', '.join(hashtags)}
 
 KEY INSIGHTS:
 {key_insights}
@@ -85,6 +88,7 @@ def _generate_video_concepts(
     analysis: dict,
     hashtags: List[str],
     selected_prompt: str = None,
+    platform: str = "instagram",
 ) -> List[dict]:
     """
     Ask Claude to produce 3 distinct video concepts with RunwayML-optimized prompts.
@@ -116,9 +120,11 @@ Rules for runway_prompt:
 - NO human faces (Runway restriction) — use hands, silhouettes, landscapes, objects
 - Keep it under 80 words"""
 
+    platform_label = "TikTok" if platform == "tiktok" else "Instagram"
+
     prompt = f"""You are an expert social media video director and AI video prompt engineer.
 
-Based on this Instagram trend analysis for hashtags: {', '.join(hashtags)}
+Based on this {platform_label} trend analysis for hashtags: {', '.join(hashtags)}
 
 KEY INSIGHTS:
 {key_insights}
@@ -254,6 +260,7 @@ async def generate_videos(
     analysis: dict,
     hashtags: List[str],
     selected_prompt: str = None,
+    platform: str = "instagram",
 ) -> List[dict]:
     """
     Full pipeline: generate 1 concept via Claude, then submit to all providers in parallel.
@@ -264,7 +271,7 @@ async def generate_videos(
 
     # Step 1: Generate 1 concept via Claude (using selected_prompt if provided)
     concepts = await loop.run_in_executor(
-        None, _generate_video_concepts, anthropic_key, analysis, hashtags, selected_prompt
+        None, _generate_video_concepts, anthropic_key, analysis, hashtags, selected_prompt, platform
     )
     concept = concepts[0]
 

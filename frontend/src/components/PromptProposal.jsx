@@ -3,7 +3,7 @@ import './PromptProposal.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-export default function PromptProposal({ analysis, hashtags, onPromptsReady }) {
+export default function PromptProposal({ analysis, hashtags, onPromptsReady, proposalsEndpoint = '/propose-prompts' }) {
   const [proposals, setProposals] = useState([])
   const [selectedIndex, setSelectedIndex] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -19,7 +19,7 @@ export default function PromptProposal({ analysis, hashtags, onPromptsReady }) {
     setError('')
     setProposals([])
     try {
-      const res = await fetch(`${API_BASE}/propose-prompts`, {
+      const res = await fetch(`${API_BASE}${proposalsEndpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ analysis, hashtags }),

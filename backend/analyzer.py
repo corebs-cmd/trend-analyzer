@@ -2,39 +2,59 @@ import anthropic
 import json
 
 
-def _summarize_posts(posts: list[dict]) -> str:
+def _summarize_posts(posts: list[dict], platform: str = "instagram") -> str:
     """Build a concise text summary of posts to send to Claude."""
     lines = []
     for i, p in enumerate(posts[:50], 1):  # cap at 50 to stay within token limits
-        caption = (p.get("caption") or "")[:300]
-        likes = p.get("likesCount", 0)
-        comments = p.get("commentsCount", 0)
-        post_type = p.get("type", "unknown")
-        hashtags = " ".join(p.get("hashtags") or [])
-        lines.append(
-            f"{i}. [{post_type}] Likes: {likes} | Comments: {comments}\n"
-            f"   Caption: {caption}\n"
-            f"   Hashtags: {hashtags}"
-        )
+        if platform == "tiktok":
+            caption = (p.get("text") or "")[:300]
+            likes = p.get("diggCount", 0)
+            comments = p.get("commentCount", 0)
+            plays = p.get("playCount", 0)
+            shares = p.get("shareCount", 0)
+            post_type = "Video"
+            hashtags = " ".join(
+                h.get("name", "") if isinstance(h, dict) else str(h)
+                for h in (p.get("hashtags") or [])
+            )
+            lines.append(
+                f"{i}. [{post_type}] Likes: {likes} | Comments: {comments} | Plays: {plays} | Shares: {shares}\n"
+                f"   Caption: {caption}\n"
+                f"   Hashtags: {hashtags}"
+            )
+        else:
+            caption = (p.get("caption") or "")[:300]
+            likes = p.get("likesCount", 0)
+            comments = p.get("commentsCount", 0)
+            post_type = p.get("type", "unknown")
+            hashtags = " ".join(p.get("hashtags") or [])
+            lines.append(
+                f"{i}. [{post_type}] Likes: {likes} | Comments: {comments}\n"
+                f"   Caption: {caption}\n"
+                f"   Hashtags: {hashtags}"
+            )
     return "\n\n".join(lines)
 
 
-def analyze_posts(api_key: str, posts: list[dict], hashtags: list[str]) -> dict:
+def analyze_posts(api_key: str, posts: list[dict], hashtags: list[str], platform: str = "instagram") -> dict:
     """
     Send post data to Claude and get back structured trend analysis
     and a video proposal.
     """
     client = anthropic.Anthropic(api_key=api_key)
 
-    post_summary = _summarize_posts(posts)
+    post_summary = _summarize_posts(posts, platform)
     total = len(posts)
-    avg_likes = int(sum(p.get("likesCount", 0) for p in posts) / total) if total else 0
-    top_post = max(posts, key=lambda p: p.get("likesCount", 0)) if posts else {}
-    top_likes = top_post.get("likesCount", 0)
+    likes_field = "diggCount" if platform == "tiktok" else "likesCount"
+    avg_likes = int(sum(p.get(likes_field, 0) for p in posts) / total) if total else 0
+    top_post = max(posts, key=lambda p: p.get(likes_field, 0)) if posts else {}
+    top_likes = top_post.get(likes_field, 0)
 
-    prompt = f"""You are an expert Instagram content strategist and trend analyst.
+    platform_label = "TikTok" if platform == "tiktok" else "Instagram"
 
-I have scraped {total} Instagram posts for the hashtag(s): {', '.join(hashtags)}
+    prompt = f"""You are an expert {platform_label} content strategist and trend analyst.
+
+I have scraped {total} {platform_label} posts for the hashtag(s): {', '.join(hashtags)}
 - Average likes: {avg_likes}
 - Top post likes: {top_likes}
 

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
 from apify_client import run_instagram_scraper
+from tiktok_client import run_tiktok_scraper
 from analyzer import analyze_posts
 from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals
 from kling_client import poll_kling_task, poll_pika_task
@@ -31,6 +32,11 @@ class ScrapeRequest(BaseModel):
     min_likes: int = Field(0, ge=0, description="Minimum likes threshold")
     max_posts: int = Field(50, ge=1, le=200, description="Max posts to scrape per hashtag")
     content_types: List[str] = Field(["posts", "reels"], description="Content types to scrape")
+
+
+class TikTokScrapeRequest(BaseModel):
+    hashtags: List[str] = Field(..., min_length=1, description="List of hashtags (without #)")
+    results_per_page: int = Field(15, ge=1, le=50, description="Results per hashtag")
 
 
 class ProposePromptsRequest(BaseModel):
@@ -129,6 +135,118 @@ async def analyze(req: ScrapeRequest):
         total_scraped=len(posts),
         analysis=analysis,
     )
+
+
+@app.post("/tiktok/analyze", response_model=AnalyzeResponse)
+async def tiktok_analyze(req: TikTokScrapeRequest):
+    apify_token = os.getenv("APIFY_TOKEN", "")
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+
+    if not apify_token:
+        raise HTTPException(status_code=500, detail="APIFY_TOKEN not configured")
+    if not anthropic_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    try:
+        raw_posts = await run_tiktok_scraper(
+            api_token=apify_token,
+            hashtags=req.hashtags,
+            results_per_page=req.results_per_page,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Apify TikTok scrape failed: {str(e)}")
+
+    if not raw_posts:
+        raise HTTPException(
+            status_code=404,
+            detail="No TikTok posts found. Try different hashtags or increase results per page.",
+        )
+
+    # Normalize TikTok fields → PostSummary shape
+    def _get_cover(p):
+        covers = p.get("covers")
+        if isinstance(covers, dict):
+            return covers.get("default")
+        if isinstance(covers, list) and covers:
+            return covers[0]
+        return p.get("videoMeta", {}).get("coverUrl") if isinstance(p.get("videoMeta"), dict) else None
+
+    posts = [
+        PostSummary(
+            id=str(p.get("id", "")),
+            shortCode=None,
+            type="Video",
+            likesCount=p.get("diggCount") or 0,
+            commentsCount=p.get("commentCount") or 0,
+            caption=(p.get("text") or "")[:500],
+            hashtags=[
+                h.get("name", "") if isinstance(h, dict) else str(h)
+                for h in (p.get("hashtags") or [])
+            ],
+            displayUrl=_get_cover(p),
+            timestamp=str(p.get("createTime", "")),
+            url=p.get("webVideoUrl"),
+        )
+        for p in raw_posts
+    ]
+
+    try:
+        analysis = analyze_posts(
+            api_key=anthropic_key,
+            posts=raw_posts,
+            hashtags=req.hashtags,
+            platform="tiktok",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Analysis failed: {str(e)}")
+
+    return AnalyzeResponse(
+        posts=posts,
+        total_scraped=len(posts),
+        analysis=analysis,
+    )
+
+
+@app.post("/tiktok/propose-prompts")
+async def tiktok_propose_prompts(req: ProposePromptsRequest):
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not anthropic_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+    try:
+        loop = asyncio.get_event_loop()
+        proposals = await loop.run_in_executor(
+            None, generate_prompt_proposals, anthropic_key, req.analysis, req.hashtags, "tiktok"
+        )
+        return {"proposals": proposals}
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Prompt proposal failed: {str(e)}")
+
+
+@app.post("/tiktok/generate-videos", response_model=VideoResponse)
+async def tiktok_generate_videos(req: VideoRequest):
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    runway_key = os.getenv("RUNWAYML_API_KEY", "")
+    fal_key = os.getenv("FAL_KEY", "")
+    luma_key = os.getenv("LUMAAI_API_KEY", "")
+
+    if not anthropic_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    try:
+        videos = await generate_videos(
+            anthropic_key=anthropic_key,
+            runway_key=runway_key,
+            fal_key=fal_key,
+            luma_key=luma_key,
+            analysis=req.analysis,
+            hashtags=req.hashtags,
+            selected_prompt=req.selected_prompt,
+            platform="tiktok",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Video generation failed: {str(e)}")
+
+    return VideoResponse(videos=videos)
 
 
 @app.post("/propose-prompts")
