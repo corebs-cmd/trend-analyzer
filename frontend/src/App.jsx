@@ -5,6 +5,7 @@ import PostGrid from './components/PostGrid'
 import AnalysisPanel from './components/AnalysisPanel'
 import PromptProposal from './components/PromptProposal'
 import VideoPanel from './components/VideoPanel'
+import HeyGenPanel from './components/HeyGenPanel'
 import './App.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -25,6 +26,12 @@ export default function App() {
   const [selectedPrompt, setSelectedPrompt] = useState(null)
   const [hasGeneratedOnce, setHasGeneratedOnce] = useState(false)
 
+  // ── Instagram HeyGen state ────────────────────────────────────────
+  const [hgVideoStatus, setHgVideoStatus] = useState('idle')
+  const [hgVideoError, setHgVideoError] = useState('')
+  const [hgVideos, setHgVideos] = useState([])
+  const [hgHasGeneratedOnce, setHgHasGeneratedOnce] = useState(false)
+
   // ── TikTok state (parallel, independent) ─────────────────────────
   const [ttStatus, setTtStatus] = useState('idle')
   const [ttErrorMsg, setTtErrorMsg] = useState('')
@@ -36,6 +43,12 @@ export default function App() {
   const [ttVideos, setTtVideos] = useState([])
   const [ttSelectedPrompt, setTtSelectedPrompt] = useState(null)
   const [ttHasGeneratedOnce, setTtHasGeneratedOnce] = useState(false)
+
+  // ── TikTok HeyGen state ───────────────────────────────────────────
+  const [ttHgVideoStatus, setTtHgVideoStatus] = useState('idle')
+  const [ttHgVideoError, setTtHgVideoError] = useState('')
+  const [ttHgVideos, setTtHgVideos] = useState([])
+  const [ttHgHasGeneratedOnce, setTtHgHasGeneratedOnce] = useState(false)
 
   // ── Instagram handlers (unchanged) ───────────────────────────────
   function handleReset() {
@@ -49,6 +62,10 @@ export default function App() {
     setVideoError('')
     setSelectedPrompt(null)
     setHasGeneratedOnce(false)
+    setHgVideoStatus('idle')
+    setHgVideos([])
+    setHgVideoError('')
+    setHgHasGeneratedOnce(false)
   }
 
   async function handleSearch({ hashtags, minLikes, maxPosts, contentTypes }) {
@@ -62,6 +79,10 @@ export default function App() {
     setVideoError('')
     setSelectedPrompt(null)
     setHasGeneratedOnce(false)
+    setHgVideoStatus('idle')
+    setHgVideos([])
+    setHgVideoError('')
+    setHgHasGeneratedOnce(false)
 
     try {
       const res = await fetch(`${API_BASE}/analyze`, {
@@ -122,6 +143,41 @@ export default function App() {
     }
   }
 
+  async function handleGenerateHeyGen(avatarId, voiceId) {
+    if (!analysis || !lastQuery) return
+    setHgVideoStatus('loading')
+    setHgVideoError('')
+    setHgVideos([])
+
+    try {
+      const res = await fetch(`${API_BASE}/heygen/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis,
+          hashtags: lastQuery.hashtags,
+          selected_prompt: selectedPrompt || undefined,
+          avatar_id: avatarId,
+          voice_id: voiceId,
+          platform: 'instagram',
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || `Server error ${res.status}`)
+      }
+
+      const data = await res.json()
+      setHgVideos(data.videos)
+      setHgVideoStatus('done')
+      setHgHasGeneratedOnce(true)
+    } catch (e) {
+      setHgVideoError(e.message)
+      setHgVideoStatus('error')
+    }
+  }
+
   // ── TikTok handlers ───────────────────────────────────────────────
   function handleTikTokReset() {
     setTtStatus('idle')
@@ -134,6 +190,10 @@ export default function App() {
     setTtVideoError('')
     setTtSelectedPrompt(null)
     setTtHasGeneratedOnce(false)
+    setTtHgVideoStatus('idle')
+    setTtHgVideos([])
+    setTtHgVideoError('')
+    setTtHgHasGeneratedOnce(false)
   }
 
   async function handleTikTokSearch({ hashtags, resultsPerPage }) {
@@ -147,6 +207,10 @@ export default function App() {
     setTtVideoError('')
     setTtSelectedPrompt(null)
     setTtHasGeneratedOnce(false)
+    setTtHgVideoStatus('idle')
+    setTtHgVideos([])
+    setTtHgVideoError('')
+    setTtHgHasGeneratedOnce(false)
 
     try {
       const res = await fetch(`${API_BASE}/tiktok/analyze`, {
@@ -202,6 +266,41 @@ export default function App() {
     } catch (e) {
       setTtVideoError(e.message)
       setTtVideoStatus('error')
+    }
+  }
+
+  async function handleTikTokGenerateHeyGen(avatarId, voiceId) {
+    if (!ttAnalysis || !ttLastQuery) return
+    setTtHgVideoStatus('loading')
+    setTtHgVideoError('')
+    setTtHgVideos([])
+
+    try {
+      const res = await fetch(`${API_BASE}/heygen/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          analysis: ttAnalysis,
+          hashtags: ttLastQuery.hashtags,
+          selected_prompt: ttSelectedPrompt || undefined,
+          avatar_id: avatarId,
+          voice_id: voiceId,
+          platform: 'tiktok',
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || `Server error ${res.status}`)
+      }
+
+      const data = await res.json()
+      setTtHgVideos(data.videos)
+      setTtHgVideoStatus('done')
+      setTtHgHasGeneratedOnce(true)
+    } catch (e) {
+      setTtHgVideoError(e.message)
+      setTtHgVideoStatus('error')
     }
   }
 
@@ -293,13 +392,14 @@ export default function App() {
                   onPromptsReady={setSelectedPrompt}
                 />
 
+                {/* ── Cinematic Video Section ── */}
                 <div className="generate-video-bar">
                   <div className="gvb-text">
-                    <p className="gvb-title">
-                      {hasGeneratedOnce ? 'Try a different prompt?' : 'Ready to create actual video content?'}
-                    </p>
+                    <p className="gvb-title">🎬 Cinematic AI Video</p>
                     <p className="gvb-sub">
-                      Your selected prompt will be sent to all 5 AI video models simultaneously
+                      {hasGeneratedOnce
+                        ? 'Try a different prompt to get new cinematic results'
+                        : 'Your selected prompt renders across RunwayML · Kling · Pika · Luma · Hailuo simultaneously'}
                     </p>
                   </div>
                   <button
@@ -310,8 +410,8 @@ export default function App() {
                     {videoStatus === 'loading'
                       ? '⏳ Generating…'
                       : hasGeneratedOnce
-                      ? '🔄 Regenerate Videos'
-                      : '🎬 Generate AI Video'}
+                      ? '🔄 Regenerate Cinematic Videos'
+                      : '🎬 Generate Cinematic Videos'}
                   </button>
                 </div>
 
@@ -319,6 +419,32 @@ export default function App() {
                   videos={videos}
                   loading={videoStatus === 'loading'}
                   error={videoStatus === 'error' ? videoError : null}
+                  title="🎬 Cinematic AI Video — Results"
+                  subtitle={
+                    videos.length > 0 && videos.every(v =>
+                      ['succeeded','failed','error','cancelled'].includes(v.status?.toLowerCase())
+                    )
+                      ? `${videos.filter(v => v.status?.toLowerCase() === 'succeeded').length} of ${videos.length} rendered · Same concept, different models — pick your favourite`
+                      : 'Rendering… updates automatically'
+                  }
+                />
+
+                {/* ── HeyGen Avatar Section ── */}
+                <HeyGenPanel
+                  analysis={analysis}
+                  hashtags={lastQuery.hashtags}
+                  selectedPrompt={selectedPrompt}
+                  onGenerate={handleGenerateHeyGen}
+                  loading={hgVideoStatus === 'loading'}
+                  hasGeneratedOnce={hgHasGeneratedOnce}
+                />
+
+                <VideoPanel
+                  videos={hgVideos}
+                  loading={hgVideoStatus === 'loading'}
+                  error={hgVideoStatus === 'error' ? hgVideoError : null}
+                  title="🎭 HeyGen Avatar IV — Result"
+                  subtitle="Your AI avatar video — reviewing & processing by HeyGen"
                 />
               </>
             )}
@@ -386,13 +512,14 @@ export default function App() {
                   proposalsEndpoint="/tiktok/propose-prompts"
                 />
 
+                {/* ── Cinematic Video Section ── */}
                 <div className="generate-video-bar generate-video-bar--tiktok">
                   <div className="gvb-text">
-                    <p className="gvb-title">
-                      {ttHasGeneratedOnce ? 'Try a different prompt?' : 'Ready to create actual video content?'}
-                    </p>
+                    <p className="gvb-title">🎬 Cinematic AI Video</p>
                     <p className="gvb-sub">
-                      Your selected prompt will be sent to all 5 AI video models simultaneously
+                      {ttHasGeneratedOnce
+                        ? 'Try a different prompt to get new cinematic results'
+                        : 'Your selected prompt renders across RunwayML · Kling · Pika · Luma · Hailuo simultaneously'}
                     </p>
                   </div>
                   <button
@@ -403,8 +530,8 @@ export default function App() {
                     {ttVideoStatus === 'loading'
                       ? '⏳ Generating…'
                       : ttHasGeneratedOnce
-                      ? '🔄 Regenerate Videos'
-                      : '🎬 Generate AI Video'}
+                      ? '🔄 Regenerate Cinematic Videos'
+                      : '🎬 Generate Cinematic Videos'}
                   </button>
                 </div>
 
@@ -412,6 +539,32 @@ export default function App() {
                   videos={ttVideos}
                   loading={ttVideoStatus === 'loading'}
                   error={ttVideoStatus === 'error' ? ttVideoError : null}
+                  title="🎬 Cinematic AI Video — Results"
+                  subtitle={
+                    ttVideos.length > 0 && ttVideos.every(v =>
+                      ['succeeded','failed','error','cancelled'].includes(v.status?.toLowerCase())
+                    )
+                      ? `${ttVideos.filter(v => v.status?.toLowerCase() === 'succeeded').length} of ${ttVideos.length} rendered · Same concept, different models — pick your favourite`
+                      : 'Rendering… updates automatically'
+                  }
+                />
+
+                {/* ── HeyGen Avatar Section ── */}
+                <HeyGenPanel
+                  analysis={ttAnalysis}
+                  hashtags={ttLastQuery.hashtags}
+                  selectedPrompt={ttSelectedPrompt}
+                  onGenerate={handleTikTokGenerateHeyGen}
+                  loading={ttHgVideoStatus === 'loading'}
+                  hasGeneratedOnce={ttHgHasGeneratedOnce}
+                />
+
+                <VideoPanel
+                  videos={ttHgVideos}
+                  loading={ttHgVideoStatus === 'loading'}
+                  error={ttHgVideoStatus === 'error' ? ttHgVideoError : null}
+                  title="🎭 HeyGen Avatar IV — Result"
+                  subtitle="Your AI avatar video — reviewing & processing by HeyGen"
                 />
               </>
             )}

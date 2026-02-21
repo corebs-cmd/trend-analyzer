@@ -10,9 +10,10 @@ from dotenv import load_dotenv
 from apify_client import run_instagram_scraper
 from tiktok_client import run_tiktok_scraper
 from analyzer import analyze_posts
-from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals
+from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals, generate_concept
 from kling_client import poll_kling_task, poll_pika_task, poll_hailuo_task
 from luma_client import poll_luma_task
+from heygen_client import fetch_heygen_config, submit_heygen_task, poll_heygen_task
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
@@ -71,6 +72,15 @@ class AnalyzeResponse(BaseModel):
 
 class VideoResponse(BaseModel):
     videos: List[dict]
+
+
+class HeyGenRequest(BaseModel):
+    analysis: dict = Field(..., description="The analysis object from /analyze")
+    hashtags: List[str] = Field(..., description="The hashtags used in the analysis")
+    selected_prompt: Optional[str] = Field(None, description="Selected runway prompt for concept direction")
+    avatar_id: str = Field(..., description="HeyGen Avatar IV avatar ID")
+    voice_id: str = Field(..., description="HeyGen voice ID")
+    platform: str = Field("instagram", description="Source platform: instagram or tiktok")
 
 
 @app.get("/health")
@@ -353,6 +363,67 @@ async def video_status_hailuo(request_id: str):
         return result
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Status check failed: {str(e)}")
+
+
+@app.get("/video-status/heygen/{video_id}")
+async def video_status_heygen(video_id: str):
+    heygen_key = os.getenv("HEYGEN_API_KEY", "")
+    if not heygen_key:
+        raise HTTPException(status_code=500, detail="HEYGEN_API_KEY not configured")
+    try:
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, poll_heygen_task, heygen_key, video_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Status check failed: {str(e)}")
+
+
+@app.get("/heygen/config")
+async def heygen_config():
+    heygen_key = os.getenv("HEYGEN_API_KEY", "")
+    if not heygen_key:
+        raise HTTPException(status_code=500, detail="HEYGEN_API_KEY not configured")
+    try:
+        loop = asyncio.get_event_loop()
+        config = await loop.run_in_executor(None, fetch_heygen_config, heygen_key)
+        return config
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"HeyGen config fetch failed: {str(e)}")
+
+
+@app.post("/heygen/generate", response_model=VideoResponse)
+async def heygen_generate(req: HeyGenRequest):
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    heygen_key = os.getenv("HEYGEN_API_KEY", "")
+
+    if not anthropic_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+    if not heygen_key:
+        raise HTTPException(status_code=500, detail="HEYGEN_API_KEY not configured")
+
+    try:
+        loop = asyncio.get_event_loop()
+        concept = await loop.run_in_executor(
+            None,
+            generate_concept,
+            anthropic_key,
+            req.analysis,
+            req.hashtags,
+            req.selected_prompt,
+            req.platform,
+        )
+        result = await loop.run_in_executor(
+            None,
+            submit_heygen_task,
+            heygen_key,
+            concept,
+            req.avatar_id,
+            req.voice_id,
+        )
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"HeyGen generation failed: {str(e)}")
+
+    return VideoResponse(videos=[result])
 
 
 # Keep old endpoint working for backwards compat (routes to runway)

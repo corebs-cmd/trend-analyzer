@@ -261,6 +261,23 @@ def poll_runway_task(runway_key: str, task_id: str) -> dict:
         return {"task_id": task_id, "status": "pending", "video_url": None}
 
 
+def generate_concept(
+    anthropic_key: str,
+    analysis: dict,
+    hashtags: List[str],
+    selected_prompt: str = None,
+    platform: str = "instagram",
+) -> dict:
+    """
+    Generate a single video concept via Claude.
+    Used by HeyGen and any pipeline that needs just the concept, not full video submission.
+    """
+    concepts = _generate_video_concepts(
+        anthropic_key, analysis, hashtags, selected_prompt, platform
+    )
+    return concepts[0]
+
+
 async def generate_videos(
     anthropic_key: str,
     runway_key: str,

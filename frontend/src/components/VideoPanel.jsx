@@ -32,6 +32,7 @@ function VideoCard({ video, index, onStatusUpdate }) {
     const provider = platform.includes('luma') ? 'luma'
       : platform === 'pika' ? 'pika'
       : platform === 'hailuo' ? 'hailuo'
+      : platform === 'heygen' ? 'heygen'
       : platform.includes('fal') || platform === 'kling' ? 'kling'
       : 'runway'
     const pollUrl = `${API_BASE}/video-status/${provider}/${video.task_id}`
@@ -118,11 +119,19 @@ function VideoCard({ video, index, onStatusUpdate }) {
         </div>
       )}
 
-      {/* Runway prompt — always visible */}
-      {video.runway_prompt && (
+      {/* Runway prompt — for cinematic models */}
+      {video.runway_prompt && !video.spoken_script && (
         <div className="vc-section vc-prompt-section">
           <span className="vc-label">Full prompt sent to {video.platform || 'RunwayML'}</span>
           <p className="vc-prompt-text">{video.runway_prompt}</p>
+        </div>
+      )}
+
+      {/* Spoken script — for HeyGen */}
+      {video.spoken_script && (
+        <div className="vc-section vc-prompt-section">
+          <span className="vc-label">Spoken script delivered by the avatar</span>
+          <p className="vc-prompt-text">{video.spoken_script}</p>
         </div>
       )}
 
@@ -138,7 +147,7 @@ function VideoCard({ video, index, onStatusUpdate }) {
   )
 }
 
-export default function VideoPanel({ videos: initialVideos, loading, error }) {
+export default function VideoPanel({ videos: initialVideos, loading, error, title, subtitle }) {
   const [videos, setVideos] = useState(initialVideos || [])
 
   // Sync if parent resets videos
@@ -193,11 +202,11 @@ export default function VideoPanel({ videos: initialVideos, loading, error }) {
   return (
     <div className="video-panel">
       <div className="vp-header">
-        <h2>🎬 AI Generated Video Concepts</h2>
+        <h2>{title || '🎬 Cinematic AI Video'}</h2>
         <span className="vp-sub">
-          {doneCount < videos.length
+          {subtitle || (doneCount < videos.length
             ? `Rendering… updates automatically`
-            : `${readyCount} of ${videos.length} rendered · Same concept, different models — pick your favourite`}
+            : `${readyCount} of ${videos.length} rendered · Same concept, different models — pick your favourite`)}
         </span>
       </div>
       <div className="video-grid">

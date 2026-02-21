@@ -237,6 +237,12 @@
   transform: translateY(0);
 }
 
+/* TikTok generate bar variant */
+.generate-video-bar--tiktok {
+  background: linear-gradient(135deg, #010101 0%, #0d2a2a 100%);
+  border: 1px solid rgba(37, 244, 238, 0.2);
+}
+
 /* ── Tab Bar ── */
 .tab-bar {
   display: flex;
