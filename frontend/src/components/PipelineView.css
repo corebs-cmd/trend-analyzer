@@ -1,0 +1,77 @@
+.pipeline-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+/* Progress bar */
+.pv-progress-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  padding: 1rem 1.5rem;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  margin-bottom: 0.5rem;
+  overflow-x: auto;
+}
+
+.pv-progress-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.pv-progress-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.pv-dot-done   { background: rgba(74,222,128,0.2); color: #4ade80; border: 2px solid #4ade80; }
+.pv-dot-active { background: rgba(251,191,36,0.2); color: #fbbf24; border: 2px solid #fbbf24; animation: pv-pulse 1.5s ease-in-out infinite; }
+.pv-dot-idle   { background: rgba(255,255,255,0.05); color: #475569; border: 2px solid rgba(255,255,255,0.12); }
+.pv-dot-locked { background: rgba(255,255,255,0.03); color: #374151; border: 2px dashed rgba(255,255,255,0.08); font-size: 0.65rem; }
+.pv-dot-error  { background: rgba(248,113,113,0.15); color: #f87171; border: 2px solid #f87171; }
+
+@keyframes pv-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(251,191,36,0.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(251,191,36,0); }
+}
+
+.pv-progress-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pv-label-done   { color: #4ade80; }
+.pv-label-active { color: #fbbf24; }
+.pv-label-idle   { color: #475569; }
+.pv-label-locked { color: #374151; }
+.pv-label-error  { color: #f87171; }
+
+.pv-progress-line {
+  width: 40px;
+  height: 2px;
+  background: rgba(255,255,255,0.08);
+  flex-shrink: 0;
+  margin: 0 0.25rem;
+  transition: background 0.3s;
+}
+.pv-line-done { background: rgba(74,222,128,0.4); }
+
+@media (max-width: 500px) {
+  .pv-progress-label { display: none; }
+  .pv-progress-line { width: 20px; }
+}

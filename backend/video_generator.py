@@ -186,6 +186,42 @@ Return ONLY the JSON array. No markdown, no extra text."""
     return json.loads(raw)
 
 
+def submit_background_runway(runway_key: str, prompt_text: str, slot: str = "A") -> dict:
+    """
+    Submit a single 10-second background video to Runway gen4.5.
+    Takes a plain prompt string (no concept wrapper).
+    slot: 'A' or 'B' — identifies which background option this is.
+    """
+    client = runwayml.RunwayML(api_key=runway_key)
+    try:
+        task = client.text_to_video.create(
+            model="gen4.5",
+            prompt_text=prompt_text,
+            ratio="720:1280",
+            duration=10,
+        )
+        return {
+            "task_id": task.id,
+            "video_url": None,
+            "status": "pending",
+            "platform": "runway",
+            "model": "gen4.5",
+            "prompt": prompt_text,
+            "slot": slot,
+        }
+    except Exception as e:
+        return {
+            "task_id": None,
+            "video_url": None,
+            "status": "error",
+            "error": str(e),
+            "platform": "runway",
+            "model": "gen4.5",
+            "prompt": prompt_text,
+            "slot": slot,
+        }
+
+
 def _submit_runway_task(
     runway_key: str,
     concept: dict,

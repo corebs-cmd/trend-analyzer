@@ -12,6 +12,45 @@ PIKA_MODEL = "fal-ai/pika/v2.2/text-to-video"
 HAILUO_MODEL = "fal-ai/minimax/hailuo-02/pro/text-to-video"
 
 
+def submit_background_kling(fal_key: str, prompt_text: str, slot: str = "A") -> dict:
+    """
+    Submit a single 10-second background video to Kling 2.6 Pro.
+    Takes a plain prompt string (no concept wrapper).
+    slot: 'A' or 'B' — identifies which background option this is.
+    """
+    os.environ["FAL_KEY"] = fal_key
+
+    try:
+        handler = fal_client.submit(
+            FAL_MODEL,
+            arguments={
+                "prompt": prompt_text,
+                "aspect_ratio": "9:16",
+                "duration": "10",
+            },
+        )
+        return {
+            "task_id": handler.request_id,
+            "video_url": None,
+            "status": "pending",
+            "platform": "kling",
+            "model": "kling-2.6-pro",
+            "prompt": prompt_text,
+            "slot": slot,
+        }
+    except Exception as e:
+        return {
+            "task_id": None,
+            "video_url": None,
+            "status": "error",
+            "error": str(e),
+            "platform": "kling",
+            "model": "kling-2.6-pro",
+            "prompt": prompt_text,
+            "slot": slot,
+        }
+
+
 def submit_kling_task(fal_key: str, concept: dict, duration: str = "10") -> dict:
     """
     Submit a Kling 2.6 Pro text-to-video task via fal.ai.

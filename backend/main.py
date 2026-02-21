@@ -10,10 +10,11 @@ from dotenv import load_dotenv
 from apify_client import run_instagram_scraper
 from tiktok_client import run_tiktok_scraper
 from analyzer import analyze_posts
-from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals, generate_concept
-from kling_client import poll_kling_task, poll_pika_task, poll_hailuo_task
+from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals, generate_concept, submit_background_runway
+from kling_client import poll_kling_task, poll_pika_task, poll_hailuo_task, submit_background_kling
 from luma_client import poll_luma_task
 from heygen_client import fetch_heygen_config, submit_heygen_task, poll_heygen_task
+from shotstack_client import submit_composite, poll_composite, get_music_tracks
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
 
@@ -72,6 +73,20 @@ class AnalyzeResponse(BaseModel):
 
 class VideoResponse(BaseModel):
     videos: List[dict]
+
+
+class BackgroundRequest(BaseModel):
+    prompt_a: str = Field(..., description="Visual prompt for background slot A")
+    prompt_b: str = Field(..., description="Visual prompt for background slot B")
+    model: str = Field("kling", description="Video model: 'kling' or 'runway'")
+
+
+class CompositeRequest(BaseModel):
+    heygen_video_url: str = Field(..., description="HeyGen avatar video URL (green screen)")
+    background_video_url: str = Field(..., description="Background video URL to composite behind avatar")
+    hook_text: str = Field(..., description="Hook text displayed as caption overlay")
+    music_track_id: str = Field("hype", description="Music track ID from /pipeline/music-tracks")
+    duration: float = Field(30.0, description="Total video duration in seconds")
 
 
 class HeyGenRequest(BaseModel):
@@ -424,6 +439,82 @@ async def heygen_generate(req: HeyGenRequest):
         raise HTTPException(status_code=502, detail=f"HeyGen generation failed: {str(e)}")
 
     return VideoResponse(videos=[result])
+
+
+@app.get("/pipeline/music-tracks")
+def pipeline_music_tracks():
+    """Return the list of available background music tracks."""
+    return {"tracks": get_music_tracks()}
+
+
+@app.post("/pipeline/generate-backgrounds")
+async def pipeline_generate_backgrounds(req: BackgroundRequest):
+    """
+    Generate 2 background scene videos (slot A + slot B) using Runway or Kling.
+    Submits both in parallel and returns immediately with task_ids for polling.
+    """
+    runway_key = os.getenv("RUNWAYML_API_KEY", "")
+    fal_key = os.getenv("FAL_KEY", "")
+
+    loop = asyncio.get_event_loop()
+
+    if req.model == "runway":
+        if not runway_key:
+            raise HTTPException(status_code=500, detail="RUNWAYML_API_KEY not configured")
+        results = await asyncio.gather(
+            loop.run_in_executor(None, submit_background_runway, runway_key, req.prompt_a, "A"),
+            loop.run_in_executor(None, submit_background_runway, runway_key, req.prompt_b, "B"),
+        )
+    else:
+        # Default: Kling
+        if not fal_key:
+            raise HTTPException(status_code=500, detail="FAL_KEY not configured")
+        results = await asyncio.gather(
+            loop.run_in_executor(None, submit_background_kling, fal_key, req.prompt_a, "A"),
+            loop.run_in_executor(None, submit_background_kling, fal_key, req.prompt_b, "B"),
+        )
+
+    return {"backgrounds": list(results)}
+
+
+@app.post("/pipeline/composite")
+async def pipeline_composite(req: CompositeRequest):
+    """
+    Submit a Shotstack render job to composite:
+    avatar (green screen) + background + caption + music → 9:16 MP4.
+    """
+    shotstack_key = os.getenv("SHOTSTACK_API_KEY", "")
+    if not shotstack_key:
+        raise HTTPException(status_code=500, detail="SHOTSTACK_API_KEY not configured")
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(
+        None,
+        submit_composite,
+        shotstack_key,
+        req.heygen_video_url,
+        req.background_video_url,
+        req.hook_text,
+        req.music_track_id,
+        req.duration,
+    )
+
+    if result.get("status") == "error":
+        raise HTTPException(status_code=502, detail=result.get("error", "Composite submission failed"))
+
+    return result
+
+
+@app.get("/pipeline/composite-status/{render_id}")
+async def pipeline_composite_status(render_id: str):
+    """Poll a Shotstack render job by render_id."""
+    shotstack_key = os.getenv("SHOTSTACK_API_KEY", "")
+    if not shotstack_key:
+        raise HTTPException(status_code=500, detail="SHOTSTACK_API_KEY not configured")
+
+    loop = asyncio.get_event_loop()
+    result = await loop.run_in_executor(None, poll_composite, shotstack_key, render_id)
+    return result
 
 
 # Keep old endpoint working for backwards compat (routes to runway)

@@ -95,6 +95,10 @@ def submit_heygen_task(
                     "input_text": spoken_script,
                     "voice_id": voice_id,
                 },
+                "background": {
+                    "type": "color",
+                    "value": "#00FF00",  # Green screen for Shotstack chroma key
+                },
             }
         ],
         "dimension": {"width": 720, "height": 1280},
