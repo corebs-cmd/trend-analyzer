@@ -86,7 +86,7 @@ function VideoCard({ video, index, onStatusUpdate }) {
             {video.status === 'succeeded'
               ? '⚠️ No video URL returned'
               : video.status === 'error' || video.status === 'failed'
-              ? `❌ ${video.error || 'Generation failed'}`
+              ? `❌ ${typeof video.error === 'object' ? JSON.stringify(video.error) : (video.error || 'Generation failed')}`
               : (
                 <div className="vc-rendering">
                   <div className="vc-mini-spinner" />

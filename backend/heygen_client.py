@@ -158,11 +158,17 @@ def poll_heygen_task(api_key: str, video_id: str) -> dict:
                 "video_url": data.get("video_url"),
             }
         elif status == "failed":
+            raw_err = data.get("error") or "Generation failed"
+            # HeyGen may return error as dict — extract message or stringify
+            if isinstance(raw_err, dict):
+                err_str = raw_err.get("message") or raw_err.get("msg") or str(raw_err)
+            else:
+                err_str = str(raw_err)
             return {
                 "task_id": video_id,
                 "status": "failed",
                 "video_url": None,
-                "error": data.get("error") or "Generation failed",
+                "error": err_str,
             }
         else:
             # pending, processing, waiting
