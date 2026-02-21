@@ -11,7 +11,7 @@ from apify_client import run_instagram_scraper
 from tiktok_client import run_tiktok_scraper
 from analyzer import analyze_posts
 from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals
-from kling_client import poll_kling_task, poll_pika_task
+from kling_client import poll_kling_task, poll_pika_task, poll_hailuo_task
 from luma_client import poll_luma_task
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
@@ -337,6 +337,19 @@ async def video_status_pika(request_id: str):
     try:
         loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, poll_pika_task, fal_key, request_id)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Status check failed: {str(e)}")
+
+
+@app.get("/video-status/hailuo/{request_id}")
+async def video_status_hailuo(request_id: str):
+    fal_key = os.getenv("FAL_KEY", "")
+    if not fal_key:
+        raise HTTPException(status_code=500, detail="FAL_KEY not configured")
+    try:
+        loop = asyncio.get_event_loop()
+        result = await loop.run_in_executor(None, poll_hailuo_task, fal_key, request_id)
         return result
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"Status check failed: {str(e)}")

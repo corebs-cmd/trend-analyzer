@@ -3,7 +3,7 @@ import runwayml
 import asyncio
 import json
 from typing import List
-from kling_client import submit_kling_task, submit_pika_task
+from kling_client import submit_kling_task, submit_pika_task, submit_hailuo_task
 from luma_client import submit_luma_task
 
 
@@ -300,6 +300,9 @@ async def generate_videos(
         )
         submit_tasks.append(
             loop.run_in_executor(None, submit_pika_task, fal_key, concept)
+        )
+        submit_tasks.append(
+            loop.run_in_executor(None, submit_hailuo_task, fal_key, concept)
         )
     if luma_key:
         submit_tasks.append(

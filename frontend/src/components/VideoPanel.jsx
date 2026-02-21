@@ -31,6 +31,7 @@ function VideoCard({ video, index, onStatusUpdate }) {
     const platform = video.platform?.toLowerCase() || ''
     const provider = platform.includes('luma') ? 'luma'
       : platform === 'pika' ? 'pika'
+      : platform === 'hailuo' ? 'hailuo'
       : platform.includes('fal') || platform === 'kling' ? 'kling'
       : 'runway'
     const pollUrl = `${API_BASE}/video-status/${provider}/${video.task_id}`
