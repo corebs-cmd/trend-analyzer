@@ -17,16 +17,20 @@ def fetch_heygen_config(api_key: str) -> dict:
         avatar_data = resp.json().get("data", {})
         all_avatars = avatar_data.get("avatars", [])
 
-        # Filter for Avatar IV style
+        # Return all avatars; tag any that are identified as Avatar IV style
+        def _is_avatar_iv(a):
+            style = a.get("avatar_style") or a.get("style") or a.get("type") or ""
+            return "IV" in style.upper() or "4" in style
+
         avatars = [
             {
                 "avatar_id": a.get("avatar_id"),
                 "name": a.get("avatar_name") or a.get("name", ""),
                 "thumbnail": a.get("preview_image_url") or a.get("preview_url"),
                 "gender": a.get("gender", ""),
+                "is_avatar_iv": _is_avatar_iv(a),
             }
             for a in all_avatars
-            if a.get("avatar_style") == "AVATAR_IV" or a.get("style") == "AVATAR_IV"
         ]
 
         # Fetch voices

@@ -191,6 +191,17 @@
   text-transform: capitalize;
 }
 
+.hgp-avatar-iv-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #c4b5fd;
+  background: rgba(139, 92, 246, 0.25);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: 4px;
+  padding: 0.1rem 0.3rem;
+  letter-spacing: 0.02em;
+}
+
 /* ── Voice Select ── */
 .hgp-voice-select {
   background: rgba(255, 255, 255, 0.07);

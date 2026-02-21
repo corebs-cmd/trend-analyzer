@@ -91,10 +91,10 @@ export default function HeyGenPanel({
           <div className="hgp-section">
             <label className="hgp-label">
               Choose Avatar
-              <span className="hgp-label-note">Avatar IV · {config.avatars.length} available</span>
+              <span className="hgp-label-note">{config.avatars.length} available</span>
             </label>
             {config.avatars.length === 0 ? (
-              <p className="hgp-empty">No Avatar IV avatars found in your HeyGen account.</p>
+              <p className="hgp-empty">No avatars found in your HeyGen account.</p>
             ) : (
               <div className="hgp-avatar-grid">
                 {config.avatars.map(a => (
@@ -110,7 +110,8 @@ export default function HeyGenPanel({
                       <div className="hgp-avatar-placeholder">👤</div>
                     )}
                     <span className="hgp-avatar-name">{a.name}</span>
-                    {a.gender && <span className="hgp-avatar-gender">{a.gender}</span>}
+                    {a.is_avatar_iv && <span className="hgp-avatar-iv-tag">Avatar IV</span>}
+                    {!a.is_avatar_iv && a.gender && <span className="hgp-avatar-gender">{a.gender}</span>}
                   </button>
                 ))}
               </div>
