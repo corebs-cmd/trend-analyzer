@@ -66,6 +66,7 @@ def submit_heygen_task(
     Returns video card dict with task_id for polling.
     """
     # Build spoken script from hook + script outline actions
+    # Cap at 130 words ≈ 1 minute of speech at normal TTS pace (~130 wpm)
     script_parts = []
     hook = concept.get("hook", "")
     if hook:
@@ -74,7 +75,10 @@ def submit_heygen_task(
         action = step.get("action", "")
         if action:
             script_parts.append(action)
-    spoken_script = " ".join(script_parts)[:1500]
+    words = " ".join(script_parts).split()
+    if len(words) > 130:
+        words = words[:130]
+    spoken_script = " ".join(words)
 
     headers = {
         "x-api-key": api_key,
