@@ -54,19 +54,51 @@
 }
 
 .vp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
   margin-bottom: 1.25rem;
+}
+
+.vp-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
 .vp-header h2 {
   font-size: 1.3rem;
   font-weight: 700;
   color: #1a1a2e;
-  margin-bottom: 0.2rem;
+  margin: 0;
 }
 
 .vp-sub {
   font-size: 0.82rem;
   color: #a0aec0;
+}
+
+.vp-refresh-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 7px;
+  color: rgba(99, 102, 241, 0.85);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.vp-refresh-btn:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.08);
+  border-color: rgba(99, 102, 241, 0.7);
+}
+.vp-refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ── Video grid ── */

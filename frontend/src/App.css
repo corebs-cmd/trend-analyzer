@@ -1,3 +1,36 @@
+/* ── Session Restored Banner ── */
+.session-restored-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 10px;
+  padding: 0.65rem 1.1rem;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+.session-restored-banner--tiktok {
+  background: rgba(37, 244, 238, 0.07);
+  border-color: rgba(37, 244, 238, 0.25);
+}
+.srb-dismiss {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.78rem;
+  padding: 0.25rem 0.65rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+}
+.srb-dismiss:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.85);
+}
+
 /* ── Layout ── */
 .app {
   min-height: 100vh;

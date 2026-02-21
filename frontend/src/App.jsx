@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import SearchForm from './components/SearchForm'
 import TikTokSearchForm from './components/TikTokSearchForm'
 import PostGrid from './components/PostGrid'
@@ -9,10 +9,38 @@ import HeyGenPanel from './components/HeyGenPanel'
 import './App.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+const SESSION_TTL = 24 * 60 * 60 * 1000 // 24 hours
+
+function saveSession(key, data) {
+  try { localStorage.setItem(key, JSON.stringify({ ...data, savedAt: Date.now() })) } catch {}
+}
+function loadSession(key) {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const d = JSON.parse(raw)
+    if (Date.now() - d.savedAt > SESSION_TTL) { localStorage.removeItem(key); return null }
+    return d
+  } catch { return null }
+}
+function clearSession(key) {
+  try { localStorage.removeItem(key) } catch {}
+}
+function formatAge(ts) {
+  const mins = Math.round((Date.now() - ts) / 60000)
+  if (mins < 2) return 'just now'
+  if (mins < 60) return `${mins} min ago`
+  const hrs = Math.round(mins / 60)
+  return hrs === 1 ? '1 hour ago' : `${hrs} hours ago`
+}
 
 export default function App() {
   // ── Tab ──────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState('instagram') // 'instagram' | 'tiktok'
+
+  // ── Session restore timestamps ────────────────────────────────────
+  const [igRestoredAt, setIgRestoredAt] = useState(null)
+  const [ttRestoredAt, setTtRestoredAt] = useState(null)
 
   // ── Instagram state (unchanged) ──────────────────────────────────
   const [status, setStatus] = useState('idle') // idle | loading | done | error
@@ -50,6 +78,26 @@ export default function App() {
   const [ttHgVideos, setTtHgVideos] = useState([])
   const [ttHgHasGeneratedOnce, setTtHgHasGeneratedOnce] = useState(false)
 
+  // ── Restore sessions from localStorage on mount ──────────────────
+  useEffect(() => {
+    const ig = loadSession('soc_ig')
+    if (ig) {
+      setPosts(ig.posts || [])
+      setAnalysis(ig.analysis)
+      setLastQuery(ig.lastQuery)
+      setStatus('done')
+      setIgRestoredAt(ig.savedAt)
+    }
+    const tt = loadSession('soc_tt')
+    if (tt) {
+      setTtPosts(tt.posts || [])
+      setTtAnalysis(tt.analysis)
+      setTtLastQuery(tt.lastQuery)
+      setTtStatus('done')
+      setTtRestoredAt(tt.savedAt)
+    }
+  }, [])
+
   // ── Instagram handlers (unchanged) ───────────────────────────────
   function handleReset() {
     setStatus('idle')
@@ -66,6 +114,8 @@ export default function App() {
     setHgVideos([])
     setHgVideoError('')
     setHgHasGeneratedOnce(false)
+    setIgRestoredAt(null)
+    clearSession('soc_ig')
   }
 
   async function handleSearch({ hashtags, minLikes, maxPosts, contentTypes }) {
@@ -105,6 +155,12 @@ export default function App() {
       setPosts(data.posts)
       setAnalysis(data.analysis)
       setStatus('done')
+      setIgRestoredAt(null)
+      saveSession('soc_ig', {
+        posts: data.posts,
+        analysis: data.analysis,
+        lastQuery: { hashtags, minLikes, maxPosts, contentTypes },
+      })
     } catch (e) {
       setErrorMsg(e.message)
       setStatus('error')
@@ -193,6 +249,8 @@ export default function App() {
     setTtHgVideos([])
     setTtHgVideoError('')
     setTtHgHasGeneratedOnce(false)
+    setTtRestoredAt(null)
+    clearSession('soc_tt')
   }
 
   async function handleTikTokSearch({ hashtags, resultsPerPage }) {
@@ -230,6 +288,12 @@ export default function App() {
       setTtPosts(data.posts)
       setTtAnalysis(data.analysis)
       setTtStatus('done')
+      setTtRestoredAt(null)
+      saveSession('soc_tt', {
+        posts: data.posts,
+        analysis: data.analysis,
+        lastQuery: { hashtags, resultsPerPage },
+      })
     } catch (e) {
       setTtErrorMsg(e.message)
       setTtStatus('error')
@@ -361,6 +425,12 @@ export default function App() {
 
             {status === 'done' && (
               <>
+                {igRestoredAt && (
+                  <div className="session-restored-banner">
+                    <span>📦 Restored from last session ({formatAge(igRestoredAt)}) · No scraping credits used</span>
+                    <button className="srb-dismiss" onClick={handleReset}>✕ Clear &amp; start fresh</button>
+                  </div>
+                )}
                 <div className="results-layout">
                   <section className="results-left">
                     <div className="section-header">
@@ -479,6 +549,12 @@ export default function App() {
 
             {ttStatus === 'done' && (
               <>
+                {ttRestoredAt && (
+                  <div className="session-restored-banner session-restored-banner--tiktok">
+                    <span>📦 Restored from last session ({formatAge(ttRestoredAt)}) · No scraping credits used</span>
+                    <button className="srb-dismiss" onClick={handleTikTokReset}>✕ Clear &amp; start fresh</button>
+                  </div>
+                )}
                 <div className="results-layout">
                   <section className="results-left">
                     <div className="section-header">

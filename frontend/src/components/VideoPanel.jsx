@@ -149,6 +149,7 @@ function VideoCard({ video, index, onStatusUpdate }) {
 
 export default function VideoPanel({ videos: initialVideos, loading, error, title, subtitle }) {
   const [videos, setVideos] = useState(initialVideos || [])
+  const [refreshing, setRefreshing] = useState(false)
 
   // Sync if parent resets videos
   useEffect(() => {
@@ -166,6 +167,31 @@ export default function VideoPanel({ videos: initialVideos, loading, error, titl
       }
       return updated
     })
+  }
+
+  const handleRefreshAll = async () => {
+    setRefreshing(true)
+    const TERMINAL = ['succeeded', 'failed', 'error', 'cancelled', 'timeout']
+    const pending = videos
+      .map((v, i) => ({ v, i }))
+      .filter(({ v }) => !TERMINAL.includes(v.status?.toLowerCase()) && v.task_id)
+
+    await Promise.all(pending.map(async ({ v, i }) => {
+      const platform = (v.platform || '').toLowerCase()
+      const provider = platform.includes('luma') ? 'luma'
+        : platform === 'pika' ? 'pika'
+        : platform === 'hailuo' ? 'hailuo'
+        : platform === 'heygen' ? 'heygen'
+        : platform.includes('fal') || platform === 'kling' ? 'kling'
+        : 'runway'
+      try {
+        const res = await fetch(`${API_BASE}/video-status/${provider}/${v.task_id}`)
+        if (!res.ok) return
+        const data = await res.json()
+        handleStatusUpdate(i, data)
+      } catch {}
+    }))
+    setRefreshing(false)
   }
 
   if (loading) {
@@ -194,20 +220,32 @@ export default function VideoPanel({ videos: initialVideos, loading, error, titl
 
   if (!videos || videos.length === 0) return null
 
-  const doneCount = videos.filter(v =>
-    ['succeeded', 'failed', 'error', 'cancelled'].includes(v.status?.toLowerCase())
-  ).length
+  const TERMINAL = ['succeeded', 'failed', 'error', 'cancelled', 'timeout']
+  const doneCount = videos.filter(v => TERMINAL.includes(v.status?.toLowerCase())).length
   const readyCount = videos.filter(v => v.status?.toLowerCase() === 'succeeded').length
+  const pendingCount = videos.filter(v => !TERMINAL.includes(v.status?.toLowerCase()) && v.task_id).length
 
   return (
     <div className="video-panel">
       <div className="vp-header">
-        <h2>{title || '🎬 Cinematic AI Video'}</h2>
-        <span className="vp-sub">
-          {subtitle || (doneCount < videos.length
-            ? `Rendering… updates automatically`
-            : `${readyCount} of ${videos.length} rendered · Same concept, different models — pick your favourite`)}
-        </span>
+        <div className="vp-header-left">
+          <h2>{title || '🎬 Cinematic AI Video'}</h2>
+          <span className="vp-sub">
+            {subtitle || (doneCount < videos.length
+              ? `Rendering… updates automatically`
+              : `${readyCount} of ${videos.length} rendered · Same concept, different models — pick your favourite`)}
+          </span>
+        </div>
+        {pendingCount > 0 && (
+          <button
+            className="vp-refresh-btn"
+            onClick={handleRefreshAll}
+            disabled={refreshing}
+            title="Manually re-check status of all pending videos"
+          >
+            {refreshing ? '⏳' : '↻'} Refresh statuses
+          </button>
+        )}
       </div>
       <div className="video-grid">
         {videos.map((v, i) => (
