@@ -74,6 +74,7 @@ def submit_composite(
             {"clips": bg_clips},
 
             # Track 2: HeyGen avatar, chroma-keyed from green screen
+            # threshold: int 0-255 (colour distance), halo: int pixels (edge feather)
             {
                 "clips": [
                     {
@@ -83,8 +84,8 @@ def submit_composite(
                             "volume": 1.0,
                             "chromaKey": {
                                 "color": "#00FF00",
-                                "threshold": 0.3,
-                                "feather": 0.02,
+                                "threshold": 80,
+                                "halo": 5,
                             },
                         },
                         "start": 0,
@@ -95,26 +96,27 @@ def submit_composite(
                 ]
             },
 
-            # Track 3: Hook caption (bottom third, first 3.5 seconds, fades out)
+            # Track 3: Hook caption — inline CSS (no separate css field in Shotstack API)
             {
                 "clips": [
                     {
                         "asset": {
                             "type": "html",
-                            "html": f"<p>{hook_text}</p>",
-                            "css": (
-                                "p { font-family: 'Open Sans', sans-serif; "
-                                "color: #ffffff; font-size: 38px; font-weight: 800; "
-                                "text-shadow: 2px 2px 6px rgba(0,0,0,0.9); "
-                                "text-align: center; padding: 12px 20px; line-height: 1.3; }"
+                            "html": (
+                                f"<p style=\"font-family:'Open Sans',sans-serif;"
+                                f"color:#ffffff;font-size:38px;font-weight:800;"
+                                f"text-shadow:2px 2px 6px rgba(0,0,0,0.9);"
+                                f"text-align:center;padding:12px 20px;"
+                                f"line-height:1.3;margin:0;\">{hook_text}</p>"
                             ),
                             "width": 640,
                             "height": 220,
+                            "background": "transparent",
                         },
                         "start": 0,
                         "length": 3.5,
                         "position": "bottom",
-                        "offset": {"y": 0.15},
+                        "offset": {"x": 0, "y": 0.1},
                         "transition": {"out": "fade"},
                     }
                 ]
@@ -137,12 +139,11 @@ def submit_composite(
         ],
     }
 
+    # Use explicit size only — mixing resolution+aspectRatio+size causes conflicts
     output = {
         "format": "mp4",
-        "resolution": "hd",
-        "aspectRatio": "9:16",
-        "fps": 30,
         "size": {"width": 720, "height": 1280},
+        "fps": 25,
     }
 
     headers = {
@@ -158,7 +159,18 @@ def submit_composite(
                 headers=headers,
                 json={"timeline": timeline, "output": output},
             )
-            resp.raise_for_status()
+            # Capture body before raise so we see Shotstack's error detail
+            if not resp.is_success:
+                try:
+                    detail = resp.json()
+                except Exception:
+                    detail = resp.text
+                return {
+                    "render_id": None,
+                    "status": "error",
+                    "video_url": None,
+                    "error": f"Shotstack {resp.status_code}: {detail}",
+                }
             data = resp.json()
             render_id = data.get("response", {}).get("id")
 
