@@ -45,31 +45,40 @@ Title: {vp.get('title', '')}
 Hook: {vp.get('hook', '')}
 Visual Style: {json.dumps(vp.get('visual_style', {}), indent=2)}
 
-Generate exactly 3 distinct RunwayML video prompt variations for this trend. Each variation should take a different creative angle (e.g. cinematic/moody, energetic/fast-paced, minimal/clean) but all should be optimized for viral social media video.
+Generate exactly 7 distinct RunwayML video prompt variations for this trend. Each variation must use one of the following creative angles, in this exact order:
 
-Respond ONLY with a valid JSON array of exactly 3 objects:
+1. Cinematic & Moody — dramatic shadows, slow push-in, desaturated tones, tense atmosphere
+2. Energetic & Raw — handheld follow, fast cuts implied through motion blur, kinetic energy
+3. Minimal & Clean — white or neutral backgrounds, single hero object, deliberate pacing
+4. Macro & Texture — extreme close-up of surfaces, fabric, food, skin, or material detail; shallow depth of field
+5. Aerial Drift — slow overhead or high-angle glide across landscapes, crowds, or architecture
+6. Golden Hour / Backlit — warm backlit subjects at magic hour, lens flare, long shadows, rim lighting
+7. Product / Object Story — single hero object with dramatic studio lighting, slow rotation or reveal, intentional composition
+
+Respond ONLY with a valid JSON array of exactly 7 objects:
 [
   {{
-    "label": "short 2-4 word label describing this prompt style (e.g. 'Cinematic & Moody')",
-    "description": "one sentence explaining what makes this prompt unique",
+    "label": "short 2-4 word label matching the angle (e.g. 'Macro & Texture')",
+    "description": "one sentence explaining what makes this prompt unique and why it fits this trend",
     "prompt": "A detailed cinematic video generation prompt for RunwayML. Must be vivid, specific, and describe motion, lighting, camera movement, and mood. 50-80 words. No human faces. Focus on environments, objects, textures, and movement."
   }}
 ]
 
 Rules for each prompt:
 - Describe ONLY visuals — no dialogue or text overlays
-- Include camera movement (slow push in, aerial drift, handheld follow, etc.)
-- Include lighting conditions (golden hour, soft diffused light, neon glow, etc.)
-- Include mood and texture details
+- Include specific camera movement (slow push in, aerial drift, handheld follow, macro pull-focus, etc.)
+- Include precise lighting conditions (golden hour, soft diffused, neon glow, rim light, studio key light, etc.)
+- Include mood, texture, and material details
 - NO human faces (Runway restriction) — use hands, silhouettes, landscapes, objects
 - Keep each prompt under 80 words
-- Make the 3 variations meaningfully different from each other
+- Make all 7 variations meaningfully different from each other
+- Ground each prompt in the specific trend/hashtag topic
 
 Return ONLY the JSON array. No markdown, no extra text."""
 
     message = client.messages.create(
         model="claude-opus-4-6",
-        max_tokens=2000,
+        max_tokens=4000,
         messages=[{"role": "user", "content": prompt}],
     )
 
