@@ -180,21 +180,77 @@
 .avs-voice-select:hover, .avs-voice-select:focus { border-color: rgba(139,92,246,0.5); }
 .avs-voice-select option { background: #1e1b4b; color: #e2e8f0; }
 
-.avs-script-note { display: flex; flex-direction: column; gap: 0.35rem; }
-.avs-hook-preview {
-  margin: 0;
-  padding: 0.6rem 0.85rem;
-  border-left: 3px solid #8b5cf6;
-  background: rgba(139,92,246,0.08);
-  border-radius: 0 8px 8px 0;
+/* Script preview / editor */
+.avs-script-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.avs-script-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.avs-word-count {
+  font-size: 0.7rem;
+  color: #4ade80;
+  background: rgba(74,222,128,0.1);
+  border: 1px solid rgba(74,222,128,0.2);
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+.avs-word-count--over {
+  color: #fbbf24 !important;
+  background: rgba(251,191,36,0.1) !important;
+  border-color: rgba(251,191,36,0.25) !important;
+}
+.avs-refresh-script {
+  font-size: 0.72rem;
+  background: rgba(139,92,246,0.12);
+  border: 1px solid rgba(139,92,246,0.25);
+  color: #a78bfa;
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.avs-refresh-script:hover:not(:disabled) { background: rgba(139,92,246,0.22); }
+.avs-refresh-script:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.avs-script-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: #94a3b8;
+  font-size: 0.82rem;
+  padding: 0.5rem 0;
+}
+.avs-script-textarea {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 10px;
   color: #e2e8f0;
   font-size: 0.88rem;
-  font-style: italic;
-  line-height: 1.4;
+  line-height: 1.6;
+  padding: 0.75rem 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
 }
-.avs-script-sub {
+.avs-script-textarea:focus {
+  outline: none;
+  border-color: rgba(139,92,246,0.55);
+  background: rgba(255,255,255,0.07);
+}
+.avs-script-textarea:disabled { opacity: 0.5; cursor: not-allowed; }
+.avs-script-textarea::placeholder { color: #475569; }
+.avs-script-hint {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: #475569;
   font-style: italic;
 }

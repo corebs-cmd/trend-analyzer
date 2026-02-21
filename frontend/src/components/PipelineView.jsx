@@ -121,13 +121,20 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
   }, [step4.composites.filter(c => c.status === 'pending').map(c => c.render_id).join(',')])
 
   // ── Step 2: Generate Avatar ──────────────────────────────────────
-  async function handleGenerateAvatar(avatarId, voiceId) {
+  async function handleGenerateAvatar(avatarId, voiceId, spokenScript) {
     setStep2({ ...INITIAL_STEP2, status: 'loading', hasGenerated: true })
     try {
       const res = await fetch(`${API_BASE}/heygen/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ analysis, hashtags, avatar_id: avatarId, voice_id: voiceId, platform }),
+        body: JSON.stringify({
+          analysis,
+          hashtags,
+          avatar_id: avatarId,
+          voice_id: voiceId,
+          platform,
+          spoken_script: spokenScript || null,
+        }),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -275,6 +282,8 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
       {/* Step 2 */}
       <AvatarStep
         analysis={analysis}
+        hashtags={hashtags}
+        platform={platform}
         step2={step2}
         onGenerate={handleGenerateAvatar}
       />

@@ -54,31 +54,40 @@ def fetch_heygen_config(api_key: str) -> dict:
     return {"avatars": avatars, "voices": voices}
 
 
+def build_spoken_script(concept: dict, max_words: int = 65) -> str:
+    """
+    Build the spoken script from a concept dict.
+    Joins hook + script_outline actions, capped at max_words (~30 sec at 130 wpm).
+    """
+    parts = []
+    if concept.get("hook"):
+        parts.append(concept["hook"])
+    for step in concept.get("script_outline", []):
+        if step.get("action"):
+            parts.append(step["action"])
+    words = " ".join(parts).split()
+    if len(words) > max_words:
+        words = words[:max_words]
+    return " ".join(words)
+
+
 def submit_heygen_task(
     api_key: str,
     concept: dict,
     avatar_id: str,
     voice_id: str,
+    spoken_script_override: str = None,
 ) -> dict:
     """
     Submit a HeyGen Avatar IV video generation task.
-    Builds a spoken script from hook + script_outline and submits to HeyGen.
+    If spoken_script_override is provided, uses it directly (user-edited).
+    Otherwise builds the script from hook + script_outline (capped at 65 words).
     Returns video card dict with task_id for polling.
     """
-    # Build spoken script from hook + script outline actions
-    # Cap at 65 words ≈ 30 seconds of speech at normal TTS pace (~130 wpm)
-    script_parts = []
-    hook = concept.get("hook", "")
-    if hook:
-        script_parts.append(hook)
-    for step in concept.get("script_outline", []):
-        action = step.get("action", "")
-        if action:
-            script_parts.append(action)
-    words = " ".join(script_parts).split()
-    if len(words) > 65:
-        words = words[:65]
-    spoken_script = " ".join(words)
+    if spoken_script_override and spoken_script_override.strip():
+        spoken_script = spoken_script_override.strip()
+    else:
+        spoken_script = build_spoken_script(concept)
 
     headers = {
         "x-api-key": api_key,

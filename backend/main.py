@@ -13,7 +13,7 @@ from analyzer import analyze_posts
 from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals, generate_concept, submit_background_runway
 from kling_client import poll_kling_task, poll_pika_task, poll_hailuo_task, submit_background_kling
 from luma_client import poll_luma_task
-from heygen_client import fetch_heygen_config, submit_heygen_task, poll_heygen_task
+from heygen_client import fetch_heygen_config, submit_heygen_task, poll_heygen_task, build_spoken_script
 from shotstack_client import submit_composite, poll_composite, get_music_tracks
 
 load_dotenv(dotenv_path=Path(__file__).parent / ".env", override=True)
@@ -89,6 +89,12 @@ class CompositeRequest(BaseModel):
     duration: float = Field(30.0, description="Total video duration in seconds")
 
 
+class HeyGenScriptRequest(BaseModel):
+    analysis: dict = Field(..., description="The analysis object from /analyze")
+    hashtags: List[str] = Field(..., description="The hashtags used in the analysis")
+    platform: str = Field("instagram", description="Source platform: instagram or tiktok")
+
+
 class HeyGenRequest(BaseModel):
     analysis: dict = Field(..., description="The analysis object from /analyze")
     hashtags: List[str] = Field(..., description="The hashtags used in the analysis")
@@ -96,6 +102,7 @@ class HeyGenRequest(BaseModel):
     avatar_id: str = Field(..., description="HeyGen Avatar IV avatar ID")
     voice_id: str = Field(..., description="HeyGen voice ID")
     platform: str = Field("instagram", description="Source platform: instagram or tiktok")
+    spoken_script: Optional[str] = Field(None, description="User-edited spoken script — if provided skips Claude generation")
 
 
 @app.get("/health")
@@ -393,6 +400,30 @@ async def video_status_heygen(video_id: str):
         raise HTTPException(status_code=502, detail=f"Status check failed: {str(e)}")
 
 
+@app.post("/heygen/preview-script")
+async def heygen_preview_script(req: HeyGenScriptRequest):
+    """
+    Generate a concept via Claude and return the pre-built spoken script for preview/editing.
+    Does NOT submit to HeyGen — just returns the text so the user can review and edit.
+    """
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not anthropic_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+    try:
+        loop = asyncio.get_event_loop()
+        concept = await loop.run_in_executor(
+            None, generate_concept, anthropic_key, req.analysis, req.hashtags, None, req.platform
+        )
+        spoken_script = build_spoken_script(concept)
+        return {
+            "spoken_script": spoken_script,
+            "hook": concept.get("hook", ""),
+            "word_count": len(spoken_script.split()),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"Script generation failed: {str(e)}")
+
+
 @app.get("/heygen/config")
 async def heygen_config():
     heygen_key = os.getenv("HEYGEN_API_KEY", "")
@@ -418,15 +449,19 @@ async def heygen_generate(req: HeyGenRequest):
 
     try:
         loop = asyncio.get_event_loop()
-        concept = await loop.run_in_executor(
-            None,
-            generate_concept,
-            anthropic_key,
-            req.analysis,
-            req.hashtags,
-            req.selected_prompt,
-            req.platform,
-        )
+        if req.spoken_script and req.spoken_script.strip():
+            # User provided/edited script — skip Claude, use an empty concept shell
+            concept = {"hook": "", "script_outline": [], "runway_prompt": "", "hashtags": []}
+        else:
+            concept = await loop.run_in_executor(
+                None,
+                generate_concept,
+                anthropic_key,
+                req.analysis,
+                req.hashtags,
+                req.selected_prompt,
+                req.platform,
+            )
         result = await loop.run_in_executor(
             None,
             submit_heygen_task,
@@ -434,6 +469,7 @@ async def heygen_generate(req: HeyGenRequest):
             concept,
             req.avatar_id,
             req.voice_id,
+            req.spoken_script,  # None → auto-build from concept; str → use directly
         )
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"HeyGen generation failed: {str(e)}")
