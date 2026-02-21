@@ -237,17 +237,6 @@
   font-style: italic;
 }
 
-/* ── No prompt warning ── */
-.hgp-no-prompt {
-  font-size: 0.82rem;
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.08);
-  border: 1px solid rgba(251, 191, 36, 0.2);
-  border-radius: 8px;
-  padding: 0.6rem 1rem;
-  margin: 0;
-}
-
 /* ── Generate Button ── */
 .hgp-btn-generate {
   padding: 0.9rem 2rem;

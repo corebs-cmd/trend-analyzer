@@ -156,7 +156,6 @@ export default function App() {
         body: JSON.stringify({
           analysis,
           hashtags: lastQuery.hashtags,
-          selected_prompt: selectedPrompt || undefined,
           avatar_id: avatarId,
           voice_id: voiceId,
           platform: 'instagram',
@@ -282,7 +281,6 @@ export default function App() {
         body: JSON.stringify({
           analysis: ttAnalysis,
           hashtags: ttLastQuery.hashtags,
-          selected_prompt: ttSelectedPrompt || undefined,
           avatar_id: avatarId,
           voice_id: voiceId,
           platform: 'tiktok',
@@ -433,7 +431,6 @@ export default function App() {
                 <HeyGenPanel
                   analysis={analysis}
                   hashtags={lastQuery.hashtags}
-                  selectedPrompt={selectedPrompt}
                   onGenerate={handleGenerateHeyGen}
                   loading={hgVideoStatus === 'loading'}
                   hasGeneratedOnce={hgHasGeneratedOnce}
@@ -553,7 +550,6 @@ export default function App() {
                 <HeyGenPanel
                   analysis={ttAnalysis}
                   hashtags={ttLastQuery.hashtags}
-                  selectedPrompt={ttSelectedPrompt}
                   onGenerate={handleTikTokGenerateHeyGen}
                   loading={ttHgVideoStatus === 'loading'}
                   hasGeneratedOnce={ttHgHasGeneratedOnce}
