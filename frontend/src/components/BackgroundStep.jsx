@@ -8,7 +8,7 @@ const MODELS = [
   { id: 'runway', label: 'Runway gen4.5', note: 'via RunwayML' },
 ]
 
-export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, step3, onGenerate }) {
+export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, step3, onGenerate, onReset }) {
   const [proposals, setProposals] = useState([])
   const [proposalsLoading, setProposalsLoading] = useState(false)
   const [proposalsError, setProposalsError] = useState('')
@@ -57,11 +57,19 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
   const canGenerate = selectedA && selectedB && step3.status !== 'loading'
   const isLoading = step3.status === 'loading'
   const hasDone = step3.backgrounds.some(b => b.status === 'succeeded')
+  const hasGenerated = step3.hasGenerated
 
   function slotOf(index) {
     if (selectedA?.index === index) return 'A'
     if (selectedB?.index === index) return 'B'
     return null
+  }
+
+  function handleReset() {
+    setSelectedA(null)
+    setSelectedB(null)
+    setSelectedModel('kling')
+    onReset()
   }
 
   return (
@@ -72,6 +80,11 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
         <span className="bgs-model-tag">Runway · Kling</span>
         {hasDone && <span className="bgs-status-done">✅ Ready</span>}
         {isLoading && !hasDone && <span className="bgs-status-loading">⏳ Generating…</span>}
+        {hasGenerated && !isLoading && (
+          <button className="bgs-reset-btn" onClick={handleReset} title="Clear results and pick new prompts">
+            ↺ Start Over
+          </button>
+        )}
       </div>
 
       <div className="bgs-body">

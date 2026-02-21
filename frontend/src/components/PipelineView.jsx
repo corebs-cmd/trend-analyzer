@@ -154,6 +154,11 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
     }
   }
 
+  // ── Step 3: Reset Backgrounds ────────────────────────────────────
+  function handleResetBackgrounds() {
+    setStep3(INITIAL_STEP3)
+  }
+
   // ── Step 3: Generate Backgrounds ────────────────────────────────
   async function handleGenerateBackgrounds(promptA, promptB, model) {
     setStep3({ ...INITIAL_STEP3, status: 'loading', hasGenerated: true })
@@ -295,6 +300,7 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
         proposalsEndpoint={proposalsEndpoint}
         step3={step3}
         onGenerate={handleGenerateBackgrounds}
+        onReset={handleResetBackgrounds}
       />
 
       {/* Step 4 */}

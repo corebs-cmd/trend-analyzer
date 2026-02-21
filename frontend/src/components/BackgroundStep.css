@@ -45,6 +45,20 @@
 .bgs-status-done   { font-size: 0.78rem; color: #4ade80; background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.25); padding: 0.2rem 0.6rem; border-radius: 20px; }
 .bgs-status-loading { font-size: 0.78rem; color: #fbbf24; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.25); padding: 0.2rem 0.6rem; border-radius: 20px; }
 
+.bgs-reset-btn {
+  margin-left: auto;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.bgs-reset-btn:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); color: #e2e8f0; }
+
 .bgs-body { display: flex; flex-direction: column; gap: 1rem; }
 
 .bgs-section { display: flex; flex-direction: column; gap: 0.5rem; }
