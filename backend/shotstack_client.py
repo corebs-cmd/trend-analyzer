@@ -1,6 +1,6 @@
 import httpx
 
-SHOTSTACK_BASE = "https://api.shotstack.io/stage/v1"  # sandbox tier
+SHOTSTACK_BASE = "https://api.shotstack.io/edit/stage"  # sandbox tier
 
 MUSIC_TRACKS = {
     "hype": {
