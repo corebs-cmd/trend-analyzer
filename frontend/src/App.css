@@ -39,9 +39,10 @@
 }
 
 .app-header {
-  background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%);
+  background: #000;
   padding: 1.25rem 2rem;
   color: white;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
 .header-inner {
@@ -61,7 +62,9 @@
 }
 
 .logo-icon {
-  font-size: 2.5rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .app-title {
@@ -284,35 +287,40 @@
 }
 
 .tab-btn {
-  padding: 0.5rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 1.1rem;
   border-radius: 999px;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.15);
-  color: white;
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(255, 255, 255, 0.65);
   transition: all 0.2s;
   white-space: nowrap;
+  letter-spacing: 0.01em;
 }
 
 .tab-btn:hover {
-  background: rgba(255, 255, 255, 0.28);
-  border-color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.35);
+  color: white;
 }
 
-/* Instagram active: white pill with purple text */
+/* Instagram active: slight white tint, white text */
 .tab-instagram.tab-active {
-  background: white;
-  color: #833ab4;
-  border-color: white;
+  background: rgba(255,255,255,0.12);
+  border-color: rgba(255,255,255,0.5);
+  color: white;
 }
 
-/* TikTok active: dark pill with cyan text */
+/* TikTok active: subtle cyan tint */
 .tab-tiktok.tab-active {
-  background: #010101;
-  color: #25f4ee;
+  background: rgba(37, 244, 238, 0.1);
   border-color: #25f4ee;
+  color: #25f4ee;
 }
 
 /* TikTok generate button override */

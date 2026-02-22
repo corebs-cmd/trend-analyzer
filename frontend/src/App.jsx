@@ -1,4 +1,40 @@
 import { useState, useEffect } from 'react'
+
+// ── Platform logo SVGs ────────────────────────────────────────────────
+function InstagramIcon({ size = 24 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <defs>
+        <radialGradient id="ig-grad" cx="30%" cy="107%" r="150%">
+          <stop offset="0%"   stopColor="#fdf497" />
+          <stop offset="5%"   stopColor="#fdf497" />
+          <stop offset="45%"  stopColor="#fd5949" />
+          <stop offset="60%"  stopColor="#d6249f" />
+          <stop offset="90%"  stopColor="#285AEB" />
+        </radialGradient>
+      </defs>
+      <rect width="24" height="24" rx="6" fill="url(#ig-grad)" />
+      <circle cx="12" cy="12" r="4.5" stroke="white" strokeWidth="2.2" fill="none" />
+      <circle cx="17.5" cy="6.5" r="1.45" fill="white" />
+    </svg>
+  )
+}
+
+function TikTokIcon({ size = 24 }) {
+  // The TikTok "d-note" shape, offset-cloned for the characteristic red+cyan shadow
+  const d = 'M17.5 4.2A4.6 4.6 0 0 1 13.8 0H10.4v14.5a2.85 2.85 0 1 1-2.05-2.73V8.3A6.73 6.73 0 1 0 14.35 15V7.95a8.4 8.4 0 0 0 4.65 1.4V6a4.65 4.65 0 0 1-1.5-.3z'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+      <rect width="24" height="24" rx="5" fill="#010101" />
+      {/* red shadow */}
+      <path d={d} fill="#fe2c55" transform="translate(3.3 2.5) scale(0.78) translate( 0.6 0)" />
+      {/* cyan shadow */}
+      <path d={d} fill="#25f4ee" transform="translate(3.3 2.5) scale(0.78) translate(-0.6 0)" />
+      {/* white center */}
+      <path d={d} fill="white"   transform="translate(3.3 2.5) scale(0.78)" />
+    </svg>
+  )
+}
 import SearchForm from './components/SearchForm'
 import TikTokSearchForm from './components/TikTokSearchForm'
 import PostGrid from './components/PostGrid'
@@ -122,15 +158,21 @@ export default function App() {
       <header className="app-header">
         <div className="header-inner">
           <div className="logo-group">
-            <span className="logo-icon">{activeTab === 'tiktok' ? '🎵' : '📸'}</span>
+            <span className="logo-icon">
+              {activeTab === 'tiktok' ? <TikTokIcon size={40} /> : <InstagramIcon size={40} />}
+            </span>
             <div>
               <h1 className="app-title">Social Trend Analyzer</h1>
               <p className="app-subtitle">Scrape hashtags · Analyze patterns · Generate postable videos</p>
             </div>
           </div>
           <div className="tab-bar">
-            <button className={`tab-btn tab-instagram ${activeTab === 'instagram' ? 'tab-active' : ''}`} onClick={() => setActiveTab('instagram')}>📸 Instagram</button>
-            <button className={`tab-btn tab-tiktok ${activeTab === 'tiktok' ? 'tab-active' : ''}`} onClick={() => setActiveTab('tiktok')}>🎵 TikTok</button>
+            <button className={`tab-btn tab-instagram ${activeTab === 'instagram' ? 'tab-active' : ''}`} onClick={() => setActiveTab('instagram')}>
+              <InstagramIcon size={20} /> Instagram
+            </button>
+            <button className={`tab-btn tab-tiktok ${activeTab === 'tiktok' ? 'tab-active' : ''}`} onClick={() => setActiveTab('tiktok')}>
+              <TikTokIcon size={20} /> TikTok
+            </button>
           </div>
         </div>
       </header>
