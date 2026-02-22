@@ -4,6 +4,7 @@ import fal_client
 # Kling 2.6 Pro via fal.ai
 # Supports 9:16, audio included, 5 or 10 seconds
 FAL_MODEL = "fal-ai/kling-video/v2.6/pro/text-to-video"
+FAL_MODEL_IMG = "fal-ai/kling-video/v2.6/pro/image-to-video"
 
 # Pika 2.2 via fal.ai
 PIKA_MODEL = "fal-ai/pika/v2.2/text-to-video"
@@ -12,29 +13,40 @@ PIKA_MODEL = "fal-ai/pika/v2.2/text-to-video"
 HAILUO_MODEL = "fal-ai/minimax/hailuo-02/pro/text-to-video"
 
 
-def submit_background_kling(fal_key: str, prompt_text: str, slot: str = "A") -> dict:
+def submit_background_kling(
+    fal_key: str,
+    prompt_text: str,
+    slot: str = "A",
+    image_url: str = None,
+) -> dict:
     """
     Submit a single 10-second background video to Kling 2.6 Pro.
     Takes a plain prompt string (no concept wrapper).
     slot: 'A' or 'B' — identifies which background option this is.
+    image_url: optional — if provided, uses image-to-video mode.
     """
     os.environ["FAL_KEY"] = fal_key
 
+    use_img = bool(image_url)
+    model = FAL_MODEL_IMG if use_img else FAL_MODEL
+
     try:
-        handler = fal_client.submit(
-            FAL_MODEL,
-            arguments={
-                "prompt": prompt_text,
-                "aspect_ratio": "9:16",
-                "duration": "10",
-            },
-        )
+        args = {
+            "prompt": prompt_text,
+            "duration": "10",
+        }
+        if use_img:
+            args["image_url"] = image_url
+        else:
+            args["aspect_ratio"] = "9:16"
+
+        handler = fal_client.submit(model, arguments=args)
         return {
             "task_id": handler.request_id,
             "video_url": None,
             "status": "pending",
             "platform": "kling",
-            "model": "kling-2.6-pro",
+            "model": "kling-2.6-pro" + ("-img2vid" if use_img else ""),
             "prompt": prompt_text,
             "slot": slot,
         }

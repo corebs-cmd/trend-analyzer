@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import './BackgroundStep.css'
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000'
@@ -8,6 +8,84 @@ const MODELS = [
   { id: 'runway', label: 'Runway gen4.5', note: 'via RunwayML' },
 ]
 
+// slot: 'A' | 'B', imageState: { previewUrl, uploadedUrl, uploading, error } | null
+function SlotImageUpload({ slot, imageState, onImageSelected, onImageCleared, disabled }) {
+  const inputRef = useRef(null)
+  const colorClass = slot === 'A' ? 'bgs-img-slot-a' : 'bgs-img-slot-b'
+
+  async function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) return
+    const previewUrl = URL.createObjectURL(file)
+    onImageSelected({ previewUrl, uploadedUrl: null, uploading: true, error: null })
+
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const res = await fetch(`${API_BASE}/pipeline/upload-image`, { method: 'POST', body: form })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || `Upload failed (${res.status})`)
+      }
+      const data = await res.json()
+      onImageSelected({ previewUrl, uploadedUrl: data.url, uploading: false, error: null })
+    } catch (e) {
+      onImageSelected({ previewUrl, uploadedUrl: null, uploading: false, error: e.message })
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault()
+    if (disabled) return
+    const file = e.dataTransfer.files[0]
+    handleFile(file)
+  }
+
+  function handleChange(e) {
+    handleFile(e.target.files[0])
+    e.target.value = ''
+  }
+
+  if (imageState) {
+    return (
+      <div className={`bgs-img-preview ${colorClass}`}>
+        <img src={imageState.previewUrl} alt={`Slot ${slot}`} className="bgs-img-thumb" />
+        <div className="bgs-img-preview-info">
+          {imageState.uploading && <span className="bgs-img-uploading">⏳ Uploading…</span>}
+          {imageState.error && <span className="bgs-img-error" title={imageState.error}>❌ Upload failed</span>}
+          {imageState.uploadedUrl && <span className="bgs-img-ready">✅ Image ready</span>}
+        </div>
+        <button
+          className="bgs-img-clear"
+          onClick={onImageCleared}
+          title="Remove image"
+          disabled={disabled}
+        >✕</button>
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className={`bgs-img-dropzone ${colorClass} ${disabled ? 'bgs-img-disabled' : ''}`}
+      onDrop={handleDrop}
+      onDragOver={e => e.preventDefault()}
+      onClick={() => !disabled && inputRef.current?.click()}
+      title={`Optional: add an image for Slot ${slot} (image-to-video)`}
+    >
+      <span className="bgs-img-icon">🖼</span>
+      <span className="bgs-img-label">Add image <span className="bgs-img-optional">(optional)</span></span>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        className="bgs-img-input"
+        onChange={handleChange}
+        disabled={disabled}
+      />
+    </div>
+  )
+}
+
 export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, step3, onGenerate, onReset }) {
   const [proposals, setProposals] = useState([])
   const [proposalsLoading, setProposalsLoading] = useState(false)
@@ -15,6 +93,8 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
   const [selectedA, setSelectedA] = useState(null) // { index, prompt, label }
   const [selectedB, setSelectedB] = useState(null)
   const [selectedModel, setSelectedModel] = useState('kling')
+  const [imageA, setImageA] = useState(null) // { previewUrl, uploadedUrl, uploading, error }
+  const [imageB, setImageB] = useState(null)
 
   useEffect(() => {
     if (analysis && hashtags) fetchProposals()
@@ -45,7 +125,6 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
   function assignSlot(slot, index) {
     const p = proposals[index]
     if (slot === 'A') {
-      // If this was already B, clear B
       if (selectedB?.index === index) setSelectedB(null)
       setSelectedA({ index, prompt: p.prompt, label: p.label })
     } else {
@@ -54,7 +133,8 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
     }
   }
 
-  const canGenerate = selectedA && selectedB && step3.status !== 'loading'
+  const isUploading = imageA?.uploading || imageB?.uploading
+  const canGenerate = selectedA && selectedB && step3.status !== 'loading' && !isUploading
   const isLoading = step3.status === 'loading'
   const hasDone = step3.backgrounds.some(b => b.status === 'succeeded')
   const hasGenerated = step3.hasGenerated
@@ -69,7 +149,19 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
     setSelectedA(null)
     setSelectedB(null)
     setSelectedModel('kling')
+    setImageA(null)
+    setImageB(null)
     onReset()
+  }
+
+  function handleGenerate() {
+    onGenerate(
+      selectedA.prompt,
+      selectedB.prompt,
+      selectedModel,
+      imageA?.uploadedUrl || null,
+      imageB?.uploadedUrl || null,
+    )
   }
 
   return (
@@ -106,19 +198,37 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
           </div>
         </div>
 
-        {/* Slot summary */}
+        {/* Slot summary + image upload */}
         <div className="bgs-slots-row">
           <div className={`bgs-slot ${selectedA ? 'bgs-slot-filled' : 'bgs-slot-empty'}`}>
             <span className="bgs-slot-letter bgs-slot-a">A</span>
-            <span className="bgs-slot-text">
-              {selectedA ? selectedA.label : 'Click a prompt below to set Slot A'}
-            </span>
+            <div className="bgs-slot-body">
+              <span className="bgs-slot-text">
+                {selectedA ? selectedA.label : 'Click a prompt below to set Slot A'}
+              </span>
+              <SlotImageUpload
+                slot="A"
+                imageState={imageA}
+                onImageSelected={setImageA}
+                onImageCleared={() => setImageA(null)}
+                disabled={isLoading}
+              />
+            </div>
           </div>
           <div className={`bgs-slot ${selectedB ? 'bgs-slot-filled' : 'bgs-slot-empty'}`}>
             <span className="bgs-slot-letter bgs-slot-b">B</span>
-            <span className="bgs-slot-text">
-              {selectedB ? selectedB.label : 'Click a prompt below to set Slot B'}
-            </span>
+            <div className="bgs-slot-body">
+              <span className="bgs-slot-text">
+                {selectedB ? selectedB.label : 'Click a prompt below to set Slot B'}
+              </span>
+              <SlotImageUpload
+                slot="B"
+                imageState={imageB}
+                onImageSelected={setImageB}
+                onImageCleared={() => setImageB(null)}
+                disabled={isLoading}
+              />
+            </div>
           </div>
         </div>
 
@@ -179,10 +289,11 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
         {/* Generate button */}
         <button
           className="bgs-btn-generate"
-          onClick={() => onGenerate(selectedA.prompt, selectedB.prompt, selectedModel)}
+          onClick={handleGenerate}
           disabled={!canGenerate}
         >
-          {isLoading ? '⏳ Generating Backgrounds…'
+          {isUploading ? '⏳ Uploading image…'
+            : isLoading ? '⏳ Generating Backgrounds…'
             : step3.hasGenerated ? '🔄 Regenerate Backgrounds'
             : '🎬 Generate 2 Background Scenes'}
         </button>

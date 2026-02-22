@@ -2,7 +2,8 @@ import os
 import asyncio
 from pathlib import Path
 from typing import Optional, List
-from fastapi import FastAPI, HTTPException
+import tempfile
+from fastapi import FastAPI, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
@@ -11,6 +12,7 @@ from apify_client import run_instagram_scraper
 from tiktok_client import run_tiktok_scraper
 from analyzer import analyze_posts
 from video_generator import generate_videos, poll_runway_task, generate_prompt_proposals, generate_concept, submit_background_runway
+import fal_client
 from kling_client import poll_kling_task, poll_pika_task, poll_hailuo_task, submit_background_kling
 from luma_client import poll_luma_task
 from heygen_client import fetch_heygen_config, submit_heygen_task, poll_heygen_task, build_spoken_script
@@ -79,6 +81,8 @@ class BackgroundRequest(BaseModel):
     prompt_a: str = Field(..., description="Visual prompt for background slot A")
     prompt_b: str = Field(..., description="Visual prompt for background slot B")
     model: str = Field("kling", description="Video model: 'kling' or 'runway'")
+    image_url_a: Optional[str] = Field(None, description="Optional CDN image URL to use for slot A (image-to-video)")
+    image_url_b: Optional[str] = Field(None, description="Optional CDN image URL to use for slot B (image-to-video)")
 
 
 class CompositeRequest(BaseModel):
@@ -483,11 +487,46 @@ def pipeline_music_tracks():
     return {"tracks": get_music_tracks()}
 
 
+@app.post("/pipeline/upload-image")
+async def pipeline_upload_image(file: UploadFile = File(...)):
+    """
+    Upload an image to fal.ai CDN and return the public URL.
+    Used by the frontend to get a public URL before submitting an image-to-video job.
+    """
+    fal_key = os.getenv("FAL_KEY", "")
+    if not fal_key:
+        raise HTTPException(status_code=500, detail="FAL_KEY not configured")
+
+    os.environ["FAL_KEY"] = fal_key
+    content = await file.read()
+    content_type = file.content_type or "image/jpeg"
+
+    suffix = ".png" if "png" in content_type else ".jpg"
+
+    def _upload() -> str:
+        with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+            tmp.write(content)
+            tmp_path = tmp.name
+        try:
+            return fal_client.upload_file(tmp_path)
+        finally:
+            os.unlink(tmp_path)
+
+    loop = asyncio.get_event_loop()
+    try:
+        url = await loop.run_in_executor(None, _upload)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image upload failed: {str(e)}")
+
+    return {"url": url}
+
+
 @app.post("/pipeline/generate-backgrounds")
 async def pipeline_generate_backgrounds(req: BackgroundRequest):
     """
     Generate 2 background scene videos (slot A + slot B) using Runway or Kling.
     Submits both in parallel and returns immediately with task_ids for polling.
+    Optionally uses image-to-video when image_url_a / image_url_b are provided.
     """
     runway_key = os.getenv("RUNWAYML_API_KEY", "")
     fal_key = os.getenv("FAL_KEY", "")
@@ -498,16 +537,16 @@ async def pipeline_generate_backgrounds(req: BackgroundRequest):
         if not runway_key:
             raise HTTPException(status_code=500, detail="RUNWAYML_API_KEY not configured")
         results = await asyncio.gather(
-            loop.run_in_executor(None, submit_background_runway, runway_key, req.prompt_a, "A"),
-            loop.run_in_executor(None, submit_background_runway, runway_key, req.prompt_b, "B"),
+            loop.run_in_executor(None, submit_background_runway, runway_key, req.prompt_a, "A", req.image_url_a),
+            loop.run_in_executor(None, submit_background_runway, runway_key, req.prompt_b, "B", req.image_url_b),
         )
     else:
         # Default: Kling
         if not fal_key:
             raise HTTPException(status_code=500, detail="FAL_KEY not configured")
         results = await asyncio.gather(
-            loop.run_in_executor(None, submit_background_kling, fal_key, req.prompt_a, "A"),
-            loop.run_in_executor(None, submit_background_kling, fal_key, req.prompt_b, "B"),
+            loop.run_in_executor(None, submit_background_kling, fal_key, req.prompt_a, "A", req.image_url_a),
+            loop.run_in_executor(None, submit_background_kling, fal_key, req.prompt_b, "B", req.image_url_b),
         )
 
     return {"backgrounds": list(results)}

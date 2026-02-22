@@ -98,7 +98,7 @@
 .bgs-slot {
   flex: 1;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.6rem;
   padding: 0.6rem 0.85rem;
   border-radius: 8px;
@@ -117,7 +117,72 @@
 .bgs-slot-a { background: rgba(59,130,246,0.25); color: #93c5fd; border: 1px solid rgba(59,130,246,0.4); }
 .bgs-slot-b { background: rgba(168,85,247,0.25); color: #d8b4fe; border: 1px solid rgba(168,85,247,0.4); }
 
+.bgs-slot-body { display: flex; flex-direction: column; gap: 0.45rem; flex: 1; min-width: 0; }
+
 .bgs-slot-text { font-size: 0.78rem; color: #94a3b8; }
+
+/* ── Image upload dropzone ── */
+.bgs-img-dropzone {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  border: 1px dashed rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.02);
+  cursor: pointer;
+  transition: all 0.15s;
+  width: fit-content;
+}
+.bgs-img-dropzone:hover:not(.bgs-img-disabled) {
+  border-color: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.06);
+}
+.bgs-img-dropzone.bgs-img-slot-a:hover:not(.bgs-img-disabled) { border-color: rgba(59,130,246,0.5); }
+.bgs-img-dropzone.bgs-img-slot-b:hover:not(.bgs-img-disabled) { border-color: rgba(168,85,247,0.5); }
+.bgs-img-disabled { opacity: 0.4; cursor: not-allowed; }
+
+.bgs-img-icon { font-size: 0.8rem; line-height: 1; }
+.bgs-img-label { font-size: 0.7rem; color: #64748b; white-space: nowrap; }
+.bgs-img-optional { color: #475569; font-size: 0.65rem; }
+.bgs-img-input { display: none; }
+
+/* ── Image preview (after upload) ── */
+.bgs-img-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  width: fit-content;
+}
+.bgs-img-preview.bgs-img-slot-a { border-color: rgba(59,130,246,0.35); background: rgba(59,130,246,0.06); }
+.bgs-img-preview.bgs-img-slot-b { border-color: rgba(168,85,247,0.35); background: rgba(168,85,247,0.06); }
+
+.bgs-img-thumb {
+  width: 32px; height: 32px;
+  object-fit: cover;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+.bgs-img-preview-info { display: flex; align-items: center; }
+.bgs-img-uploading { font-size: 0.7rem; color: #fbbf24; }
+.bgs-img-error { font-size: 0.7rem; color: #f87171; }
+.bgs-img-ready { font-size: 0.7rem; color: #4ade80; }
+
+.bgs-img-clear {
+  background: none;
+  border: none;
+  color: #475569;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0 0.15rem;
+  line-height: 1;
+  transition: color 0.1s;
+}
+.bgs-img-clear:hover { color: #94a3b8; }
 
 /* Loading / Error */
 .bgs-proposals-loading {

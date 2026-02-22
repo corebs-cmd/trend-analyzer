@@ -160,13 +160,19 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
   }
 
   // ── Step 3: Generate Backgrounds ────────────────────────────────
-  async function handleGenerateBackgrounds(promptA, promptB, model) {
+  async function handleGenerateBackgrounds(promptA, promptB, model, imageUrlA = null, imageUrlB = null) {
     setStep3({ ...INITIAL_STEP3, status: 'loading', hasGenerated: true })
     try {
       const res = await fetch(`${API_BASE}/pipeline/generate-backgrounds`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt_a: promptA, prompt_b: promptB, model }),
+        body: JSON.stringify({
+          prompt_a: promptA,
+          prompt_b: promptB,
+          model,
+          image_url_a: imageUrlA,
+          image_url_b: imageUrlB,
+        }),
       })
       if (!res.ok) {
         const err = await res.json()
