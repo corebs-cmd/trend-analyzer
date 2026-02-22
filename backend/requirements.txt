@@ -7,3 +7,4 @@ pydantic==2.9.2
 runwayml==4.6.1
 fal-client==0.5.9
 lumaai==1.20.0
+python-multipart==0.0.9
