@@ -54,10 +54,10 @@ def fetch_heygen_config(api_key: str) -> dict:
     return {"avatars": avatars, "voices": voices}
 
 
-def build_spoken_script(concept: dict, max_words: int = 65) -> str:
+def build_spoken_script(concept: dict, max_words: int = 22) -> str:
     """
     Build the spoken script from a concept dict.
-    Joins hook + script_outline actions, capped at max_words (~30 sec at 130 wpm).
+    Joins hook + script_outline actions, capped at max_words (~10 sec at 130 wpm).
     """
     parts = []
     if concept.get("hook"):

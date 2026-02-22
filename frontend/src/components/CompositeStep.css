@@ -199,11 +199,13 @@
 .cs-result { display: flex; flex-direction: column; gap: 0.5rem; }
 
 .cs-final-video {
-  width: 100%;
+  display: block;
+  width: auto;
+  max-width: 150px;
+  aspect-ratio: 9 / 16;
   border-radius: 8px;
   background: #000;
-  max-height: 220px;
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .cs-download-btn {

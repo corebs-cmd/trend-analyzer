@@ -164,7 +164,7 @@ export default function AvatarStep({ analysis, hashtags, platform = 'instagram',
                 </label>
                 <div className="avs-script-meta">
                   {scriptText && (
-                    <span className={`avs-word-count ${wordCount > 65 ? 'avs-word-count--over' : ''}`}>
+                    <span className={`avs-word-count ${wordCount > 22 ? 'avs-word-count--over' : ''}`}>
                       {wordCount} words · ~{approxSeconds}s
                     </span>
                   )}
@@ -203,7 +203,7 @@ export default function AvatarStep({ analysis, hashtags, platform = 'instagram',
               )}
 
               <p className="avs-script-hint">
-                This exact text will be spoken by the avatar. Aim for under 65 words (~30s). Hit ↻ Regenerate for a fresh version.
+                This exact text will be spoken by the avatar. Aim for under 22 words (~10s) to match the background video length. Hit ↻ Regenerate for a fresh version.
               </p>
             </div>
 

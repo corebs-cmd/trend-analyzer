@@ -191,9 +191,8 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
     if (!bg || !step2.videoUrl) return
 
     const hookText = analysis?.video_proposal?.hook || ''
-    // Estimate spoken duration: ~2.5 words/sec (150 wpm)
-    const wordCount = step2.spokenScript.split(/\s+/).filter(Boolean).length
-    const duration = wordCount > 0 ? Math.max(15, Math.min(60, Math.ceil(wordCount / 2.5))) : 30
+    // Fixed 10 seconds to match background video clip duration
+    const duration = 10
 
     // Mark slot as pending immediately
     setStep4(s => ({
