@@ -33,7 +33,7 @@ function formatAge(ts) {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('instagram')
+  const [activeTab, setActiveTab] = useState('tiktok')
 
   // ── Session restore timestamps ───────────────────────────────────
   const [igRestoredAt, setIgRestoredAt] = useState(null)
