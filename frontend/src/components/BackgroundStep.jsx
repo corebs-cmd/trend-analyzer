@@ -318,7 +318,20 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
                       : '❌ Error'}
                   </span>
                 </div>
-                <p className="bgs-result-prompt">{bg.prompt}</p>
+                {proposals.length > 0 ? (
+                  <select
+                    className="bgs-prompt-select"
+                    value={bg.slot === 'A' ? (selectedA?.index ?? '') : (selectedB?.index ?? '')}
+                    onChange={e => assignSlot(bg.slot, parseInt(e.target.value))}
+                    disabled={bg.status === 'pending' || bg.status === 'pending-submit'}
+                  >
+                    {proposals.map((p, i) => (
+                      <option key={i} value={i}>{p.label}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="bgs-result-prompt">{bg.prompt}</p>
+                )}
                 {bg.status === 'succeeded' && bg.video_url && (
                   <video src={bg.video_url} controls className="bgs-result-video" playsInline />
                 )}

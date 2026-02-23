@@ -320,6 +320,21 @@
 
 .bgs-result-prompt { margin: 0; font-size: 0.72rem; color: #64748b; font-style: italic; line-height: 1.3; }
 
+.bgs-prompt-select {
+  width: 100%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-style: italic;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  outline: none;
+}
+.bgs-prompt-select:hover:not(:disabled) { border-color: rgba(20,184,166,0.35); color: #cbd5e1; }
+.bgs-prompt-select:disabled { opacity: 0.4; cursor: not-allowed; }
+
 .bgs-result-video {
   display: block;
   width: 100%;
