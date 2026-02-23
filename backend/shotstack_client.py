@@ -31,13 +31,55 @@ def get_music_tracks():
     return [{"id": k, "name": v["name"]} for k, v in MUSIC_TRACKS.items()]
 
 
+def _build_caption_clips(script: str, duration: float, words_per_chunk: int = 4) -> list:
+    """
+    Split the spoken script into evenly-timed subtitle caption clips.
+    Each chunk of ~words_per_chunk words gets an equal slice of the total duration,
+    with fade-in / fade-out transitions between chunks.
+    """
+    words = script.strip().split()
+    if not words:
+        return []
+    chunks = [
+        " ".join(words[i:i + words_per_chunk])
+        for i in range(0, len(words), words_per_chunk)
+    ]
+    chunk_dur = round(duration / len(chunks), 2)
+    clips = []
+    for idx, chunk in enumerate(chunks):
+        clips.append({
+            "asset": {
+                "type": "html",
+                "html": (
+                    f'<p style="font-family:\'Open Sans\',sans-serif;'
+                    f'color:#ffffff;font-size:40px;font-weight:800;'
+                    f'text-shadow:2px 2px 8px rgba(0,0,0,1),'
+                    f'-1px -1px 0 #000,1px -1px 0 #000,'
+                    f'-1px 1px 0 #000,1px 1px 0 #000;'
+                    f'text-align:center;margin:0;padding:6px 14px;'
+                    f'line-height:1.2;">{chunk}</p>'
+                ),
+                "width": 640,
+                "height": 130,
+                "background": "transparent",
+            },
+            "start": round(idx * chunk_dur, 2),
+            "length": chunk_dur,
+            "position": "bottom",
+            "offset": {"x": 0, "y": 0.08},
+            "transition": {"in": "fade", "out": "fade"},
+        })
+    return clips
+
+
 def submit_composite(
     api_key: str,
     heygen_video_url: str,
     background_video_url: str,
     hook_text: str,
     music_track_id: str = "hype",
-    duration: float = 30.0,
+    duration: float = 10.0,
+    spoken_script: str = None,
 ) -> dict:
     """
     Submit a Shotstack render job to composite:
@@ -96,9 +138,11 @@ def submit_composite(
                 ]
             },
 
-            # Track 3: Hook caption — inline CSS (no separate css field in Shotstack API)
+            # Track 3: Captions — subtitle chunks (if spoken_script) or hook text fallback
             {
-                "clips": [
+                "clips": _build_caption_clips(spoken_script, duration)
+                if spoken_script and spoken_script.strip()
+                else [
                     {
                         "asset": {
                             "type": "html",

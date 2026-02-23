@@ -7,6 +7,8 @@ export default function CompositeStep({
   musicTracks,
   unlocked,
   onSelectMusic,
+  captionsEnabled,
+  onToggleCaptions,
   onComposite,
 }) {
   const succeededBgs = step3.backgrounds.filter(b => b.status === 'succeeded')
@@ -56,6 +58,22 @@ export default function CompositeStep({
               ))}
             </div>
             <p className="cs-music-note">Music plays at low volume behind the avatar's voice</p>
+          </div>
+
+          {/* Captions toggle */}
+          <div className="cs-section">
+            <span className="cs-label">Captions</span>
+            <button
+              className={`cs-caption-toggle ${captionsEnabled ? 'cs-caption-on' : ''}`}
+              onClick={onToggleCaptions}
+            >
+              💬 Captions {captionsEnabled ? 'On' : 'Off'}
+            </button>
+            <p className="cs-caption-note">
+              {captionsEnabled
+                ? 'Script split into timed subtitle chunks across the video'
+                : 'Hook text shown for 3.5s at the start (default)'}
+            </p>
           </div>
 
           {/* Composite actions */}

@@ -23,6 +23,7 @@ const INITIAL_STEP3 = {
 }
 const INITIAL_STEP4 = {
   selectedMusic: 'hype',
+  captionsEnabled: false,
   composites: [],   // [{slot, render_id, status, video_url, error}]
 }
 
@@ -213,6 +214,7 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
           hook_text: hookText,
           music_track_id: step4.selectedMusic,
           duration,
+          spoken_script: step4.captionsEnabled ? (step2.spokenScript || '') : null,
         }),
       })
       if (!res.ok) {
@@ -316,6 +318,8 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
         musicTracks={musicTracks}
         unlocked={step4Unlocked}
         onSelectMusic={id => setStep4(s => ({ ...s, selectedMusic: id }))}
+        captionsEnabled={step4.captionsEnabled}
+        onToggleCaptions={() => setStep4(s => ({ ...s, captionsEnabled: !s.captionsEnabled }))}
         onComposite={handleComposite}
       />
     </div>

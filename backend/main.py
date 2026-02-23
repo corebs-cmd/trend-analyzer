@@ -90,7 +90,8 @@ class CompositeRequest(BaseModel):
     background_video_url: str = Field(..., description="Background video URL to composite behind avatar")
     hook_text: str = Field(..., description="Hook text displayed as caption overlay")
     music_track_id: str = Field("hype", description="Music track ID from /pipeline/music-tracks")
-    duration: float = Field(30.0, description="Total video duration in seconds")
+    duration: float = Field(10.0, description="Total video duration in seconds")
+    spoken_script: Optional[str] = Field(None, description="Full spoken script for timed subtitle captions; replaces hook-text overlay when provided")
 
 
 class HeyGenScriptRequest(BaseModel):
@@ -572,6 +573,7 @@ async def pipeline_composite(req: CompositeRequest):
         req.hook_text,
         req.music_track_id,
         req.duration,
+        req.spoken_script,
     )
 
     if result.get("status") == "error":
