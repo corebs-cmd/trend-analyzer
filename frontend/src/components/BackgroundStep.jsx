@@ -86,7 +86,7 @@ function SlotImageUpload({ slot, imageState, onImageSelected, onImageCleared, di
   )
 }
 
-export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, step3, onGenerate, onReset }) {
+export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, step3, onGenerate, onReset, onRegenerateSlot }) {
   const [proposals, setProposals] = useState([])
   const [proposalsLoading, setProposalsLoading] = useState(false)
   const [proposalsError, setProposalsError] = useState('')
@@ -322,14 +322,27 @@ export default function BackgroundStep({ analysis, hashtags, proposalsEndpoint, 
                 {bg.status === 'succeeded' && bg.video_url && (
                   <video src={bg.video_url} controls className="bgs-result-video" playsInline />
                 )}
-                {(bg.status === 'pending') && (
+                {(bg.status === 'pending' || bg.status === 'pending-submit') && (
                   <div className="bgs-result-pending">
                     <div className="bgs-spinner" />
-                    <span>Rendering 10-second clip…</span>
+                    <span>{bg.status === 'pending-submit' ? 'Submitting…' : 'Rendering 10-second clip…'}</span>
                   </div>
                 )}
                 {(bg.status === 'failed' || bg.status === 'error') && (
                   <p className="bgs-result-error">{bg.error}</p>
+                )}
+                {(bg.status === 'succeeded' || bg.status === 'failed' || bg.status === 'error') && onRegenerateSlot && (
+                  <button
+                    className="bgs-rerun-btn"
+                    onClick={() => {
+                      const sel = bg.slot === 'A' ? selectedA : selectedB
+                      const img = bg.slot === 'A' ? imageA : imageB
+                      if (sel) onRegenerateSlot(bg.slot, sel.prompt, selectedModel, img?.uploadedUrl || null)
+                    }}
+                    title={`Re-run Slot ${bg.slot} with current prompt & image selection`}
+                  >
+                    ↺ Re-run
+                  </button>
                 )}
               </div>
             ))}

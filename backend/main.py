@@ -85,6 +85,13 @@ class BackgroundRequest(BaseModel):
     image_url_b: Optional[str] = Field(None, description="Optional CDN image URL to use for slot B (image-to-video)")
 
 
+class SingleBackgroundRequest(BaseModel):
+    prompt: str = Field(..., description="Visual prompt for the background clip")
+    model: str = Field("kling", description="Video model: 'kling' or 'runway'")
+    slot: str = Field("A", description="Which slot this is for: 'A' or 'B'")
+    image_url: Optional[str] = Field(None, description="Optional CDN image URL for image-to-video")
+
+
 class CompositeRequest(BaseModel):
     heygen_video_url: str = Field(..., description="HeyGen avatar video URL (green screen)")
     background_video_url: str = Field(..., description="Background video URL to composite behind avatar")
@@ -551,6 +558,33 @@ async def pipeline_generate_backgrounds(req: BackgroundRequest):
         )
 
     return {"backgrounds": list(results)}
+
+
+@app.post("/pipeline/generate-background")
+async def pipeline_generate_background(req: SingleBackgroundRequest):
+    """
+    Generate a single background scene for one slot (used for per-slot re-runs).
+    Returns immediately with a task_id for polling via /video-status/{provider}/{task_id}.
+    """
+    runway_key = os.getenv("RUNWAYML_API_KEY", "")
+    fal_key = os.getenv("FAL_KEY", "")
+
+    loop = asyncio.get_event_loop()
+
+    if req.model == "runway":
+        if not runway_key:
+            raise HTTPException(status_code=500, detail="RUNWAYML_API_KEY not configured")
+        result = await loop.run_in_executor(
+            None, submit_background_runway, runway_key, req.prompt, req.slot, req.image_url
+        )
+    else:
+        if not fal_key:
+            raise HTTPException(status_code=500, detail="FAL_KEY not configured")
+        result = await loop.run_in_executor(
+            None, submit_background_kling, fal_key, req.prompt, req.slot, req.image_url
+        )
+
+    return {"background": result}
 
 
 @app.post("/pipeline/composite")

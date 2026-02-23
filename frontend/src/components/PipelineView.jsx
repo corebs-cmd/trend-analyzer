@@ -160,6 +160,41 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
     setStep3(INITIAL_STEP3)
   }
 
+  // ── Step 3: Regenerate a single slot ─────────────────────────────
+  async function handleRegenerateSlot(slot, prompt, model, imageUrl) {
+    // Replace just that slot with a loading placeholder; keep the other slot intact
+    setStep3(s => ({
+      ...s,
+      backgrounds: [
+        ...s.backgrounds.filter(b => b.slot !== slot),
+        { slot, task_id: null, status: 'pending-submit', prompt, model, video_url: null },
+      ],
+    }))
+    try {
+      const res = await fetch(`${API_BASE}/pipeline/generate-background`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, model, slot, image_url: imageUrl || null }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.detail || `Server error ${res.status}`)
+      }
+      const data = await res.json()
+      setStep3(s => ({
+        ...s,
+        backgrounds: s.backgrounds.map(b => b.slot === slot ? { ...data.background } : b),
+      }))
+    } catch (e) {
+      setStep3(s => ({
+        ...s,
+        backgrounds: s.backgrounds.map(b =>
+          b.slot === slot ? { ...b, status: 'error', error: e.message } : b
+        ),
+      }))
+    }
+  }
+
   // ── Step 3: Generate Backgrounds ────────────────────────────────
   async function handleGenerateBackgrounds(promptA, promptB, model, imageUrlA = null, imageUrlB = null) {
     setStep3({ ...INITIAL_STEP3, status: 'loading', hasGenerated: true })

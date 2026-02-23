@@ -335,6 +335,20 @@
 }
 .bgs-result-error { margin: 0; font-size: 0.75rem; color: #f87171; }
 
+.bgs-rerun-btn {
+  align-self: flex-start;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.bgs-rerun-btn:hover { background: rgba(20,184,166,0.1); border-color: rgba(20,184,166,0.35); color: #2dd4bf; }
+
 @media (max-width: 600px) {
   .bgs-results { grid-template-columns: 1fr; }
   .bgs-slots-row { flex-direction: column; }
