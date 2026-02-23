@@ -322,8 +322,7 @@
 
 .bgs-result-video {
   display: block;
-  width: auto;
-  max-width: 120px;
+  width: 100%;
   aspect-ratio: 9 / 16;
   border-radius: 8px;
   background: #000;
