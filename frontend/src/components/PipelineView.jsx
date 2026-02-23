@@ -343,6 +343,7 @@ export default function PipelineView({ analysis, hashtags, platform = 'instagram
         step3={step3}
         onGenerate={handleGenerateBackgrounds}
         onReset={handleResetBackgrounds}
+        onRegenerateSlot={handleRegenerateSlot}
       />
 
       {/* Step 4 */}
